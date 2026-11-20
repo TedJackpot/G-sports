@@ -1,4 +1,4 @@
-// G-Sports Gabon – panneau d'administration
+// G-Sports – panneau d'administration
 import {
   html, raw, $, $$, api, state, addRoute, navigate, setMeta, action, form, toast, openModal, closeModal, confirmDialog, icon,
   fmtDate, fmtDateTime, fmtAge, requireLogin, render, pickAndUpload, refreshMe, renderLayout,

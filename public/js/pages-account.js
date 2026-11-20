@@ -1,4 +1,4 @@
-// G-Sports Gabon – comptes : connexion, inscriptions, espace parent, espace professionnel
+// G-Sports – comptes : connexion, inscriptions, espace parent, espace professionnel
 import {
   html, raw, esc, $, $$, api, state, addRoute, navigate, setMeta, action, form, onMount, toast, openModal, closeModal, confirmDialog, icon,
   fmtDate, fmtDateTime, fmtPrice, fmtAge, LEVEL_LABELS, DAY_LABELS, todayStr, photo, initials, listingCard, profileCard,
@@ -6,7 +6,7 @@ import {
 } from './core.js';
 
 const authShell = (title, sub, body) => html`<div class="auth-wrap"><div class="card pad auth-card fade-in">
-  <a class="logo" href="/" style="margin-bottom:14px"><span class="wordmark">G-Sports</span><small>Gabon</small></a>
+  <a class="logo" href="/" style="margin-bottom:14px"><span class="wordmark"><b>G</b>-Sports</span></a>
   <h1 style="font-size:1.6rem">${title}</h1>${sub ? html`<p class="muted">${sub}</p>` : ''}${body}</div></div>`;
 const pwdHint = html`<span class="hint">8 caractères minimum, avec au moins une lettre et un chiffre.</span>`;
 async function afterLogin(retour) {
@@ -56,7 +56,7 @@ addRoute('/inscription-pro', () => {
   setMeta('Référencer mon activité');
   regLogo = null;
   const types = Object.entries(state.meta.profileTypes);
-  return html`<div class="page-head has-img"><div class="bg" style="background-image:url('${photo('basket-dribble', true)}')"></div><div class="container">
+  return html`<div class="page-head has-img"><figure class="head-photo"><img src="${photo('basket-dribble')}" alt=""></figure><div class="container">
     <h1>Vous êtes un club, une association, un gymnase, un coach ou un organisateur ?</h1><p>Présentez vos activités aux familles : tarifs, horaires, modalités d'inscription. Les demandes des parents arrivent directement chez vous.</p></div></div>
   <div class="container" style="padding:24px 16px 40px;max-width:860px">
     ${state.me ? html`<div class="notice warn" style="margin-bottom:14px">Vous êtes connecté avec un compte ${state.me.role}. Déconnectez-vous pour créer un compte professionnel avec une autre adresse email.</div>` : ''}

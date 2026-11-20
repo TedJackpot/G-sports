@@ -1,4 +1,4 @@
-// G-Sports Gabon – démarrage de l'application
+// G-Sports – démarrage de l'application
 import { state, api, render, renderLayout, refreshMe, loadFavs, errorView, $ } from './core.js';
 import './pages-public.js';
 import './pages-account.js';

@@ -135,6 +135,8 @@ function photoUrl(p) { return p || null; }
 const MATCHING_PHOTOS = {
   football: 'football-entrainement', futsal: 'football-jonglage',
   basketball: 'basket-dribble',
+  karate: 'arts-martiaux-2', judo: 'arts-martiaux-2', taekwondo: 'arts-martiaux', 'boxe-educative': 'arts-martiaux', kickboxing: 'arts-martiaux',
+  lutte: 'arts-martiaux-2', aikido: 'arts-martiaux-2', 'jiu-jitsu': 'arts-martiaux-2', 'self-defense-jeunes': 'arts-martiaux',
   'natation-debutant': 'natation-cours', 'natation-perfectionnement': 'natation-dos', 'natation-competition': 'natation-groupe',
   natation: 'natation-cours', 'stages-aquatiques': 'natation-groupe', 'aquagym-jeunes': 'natation-initiation',
   randonnee: 'randonnee-foret', 'camping-encadre': 'camp-nature', 'decouverte-de-la-nature': 'exploration-nature',

@@ -1,5 +1,5 @@
 'use strict';
-// G-Sports Gabon – serveur HTTP (local : node server/index.js ; Vercel : fonction api/index.js)
+// G-Sports – serveur HTTP (local : node server/index.js ; Vercel : fonction api/index.js)
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -109,23 +109,23 @@ function template() {
   return TEMPLATE;
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const DEFAULT_DESC = "G-Sports Gabon : trouver une activité sportive, artistique, éducative ou de loisirs pour les 5–18 ans partout au Gabon. Tarifs, horaires et modalités d'inscription.";
+const DEFAULT_DESC = "G-Sports : trouver une activité sportive, artistique, éducative ou de loisirs pour les 5–18 ans partout au Gabon. Tarifs, horaires et modalités d'inscription.";
 const STATIC_PAGES = {
-  '/': ['G-Sports Gabon – Trouvez l\'activité qui fera grandir votre enfant', DEFAULT_DESC],
+  '/': ['G-Sports – Trouvez l\'activité qui fera grandir votre enfant', DEFAULT_DESC],
   '/activites': ['Explorer les activités pour enfants et jeunes au Gabon', 'Recherchez par ville, âge, catégorie, tarif et disponibilités parmi les activités référencées au Gabon.'],
-  '/recherche': ['Recherche avancée – G-Sports Gabon', 'Filtres avancés : ville, province, âge, niveau, tarif, dates, vacances, week-end, indoor/outdoor.'],
+  '/recherche': ['Recherche avancée – G-Sports', 'Filtres avancés : ville, province, âge, niveau, tarif, dates, vacances, week-end, indoor/outdoor.'],
   '/sports': ['Sports pour enfants et adolescents au Gabon', 'Football, basketball, natation, arts martiaux, tennis, athlétisme… Trouvez un club ou un coach.'],
   '/extrascolaire': ['Activités extrascolaires au Gabon', 'Arts, musique, danse, robotique, échecs, langues, soutien scolaire et ateliers pour les jeunes.'],
-  '/clubs': ['Clubs, salles et structures – G-Sports Gabon', 'Clubs sportifs, gymnases, associations et centres de loisirs référencés au Gabon.'],
+  '/clubs': ['Clubs, salles et structures – G-Sports', 'Clubs sportifs, gymnases, associations et centres de loisirs référencés au Gabon.'],
   '/coachs': ['Coachs sportifs indépendants au Gabon', 'Coachs et éducateurs : cours individuels ou en groupe, en salle, en extérieur ou à domicile.'],
   '/stages': ['Stages sportifs et activités de vacances au Gabon', 'Stages intensifs, journées découverte et programmes pendant les vacances scolaires.'],
   '/camps': ['Camps de vacances pour enfants et ados au Gabon', 'Camps sportifs, nature, culturels et multisports : dates, tarifs, encadrement.'],
   '/calendrier': ['Calendrier des inscriptions, stages et camps', 'Toutes les dates d\'inscription, de stages et de camps à venir au Gabon.'],
   '/carte': ['Carte des activités au Gabon', 'Explorez les activités par province et par ville sur la carte du Gabon.'],
   '/publier': ['Publier une annonce – G-Sports', 'Clubs, coachs, associations : présentez vos activités, tarifs et modalités d’inscription aux familles.'],
-  '/connexion': ['Connexion – G-Sports Gabon', DEFAULT_DESC], '/inscription': ['Créer un compte parent – G-Sports Gabon', DEFAULT_DESC],
-  '/inscription-pro': ['Référencer mon activité – G-Sports Gabon', 'Compte professionnel pour clubs, salles, associations, coachs et organisateurs.'],
-  '/favoris': ['Mes favoris – G-Sports', DEFAULT_DESC], '/a-propos': ['À propos de G-Sports Gabon', DEFAULT_DESC],
+  '/connexion': ['Connexion – G-Sports', DEFAULT_DESC], '/inscription': ['Créer un compte parent – G-Sports', DEFAULT_DESC],
+  '/inscription-pro': ['Référencer mon activité – G-Sports', 'Compte professionnel pour clubs, salles, associations, coachs et organisateurs.'],
+  '/favoris': ['Mes favoris – G-Sports', DEFAULT_DESC], '/a-propos': ['À propos de G-Sports', DEFAULT_DESC],
   '/comment-ca-marche': ['Comment fonctionne G-Sports ?', 'Trouver une activité en moins de 30 secondes, comparer tarifs et modalités d’inscription, contacter directement le club ou le coach.'],
   '/contact': ['Contacter G-Sports', DEFAULT_DESC], '/faq': ['Questions fréquentes – G-Sports', DEFAULT_DESC],
   '/conditions': ["Conditions d'utilisation – G-Sports", DEFAULT_DESC], '/confidentialite': ['Politique de confidentialité – G-Sports', DEFAULT_DESC],
@@ -197,14 +197,14 @@ async function buildPage(req) {
     status = 404; title = 'Page introuvable – G-Sports'; robots = 'noindex,follow';
   }
   if (PRIVATE_PREFIXES.some(x => p.startsWith(x))) robots = 'noindex,nofollow';
-  title = title || 'G-Sports Gabon';
+  title = title || 'G-Sports';
   const canonical = SITE_URL + (p === '/' ? '/' : p);
   const meta = [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(desc.slice(0, 300))}">`,
     `<meta name="robots" content="${robots}">`,
     `<link rel="canonical" href="${esc(canonical)}">`,
-    `<meta property="og:type" content="website"><meta property="og:site_name" content="G-Sports Gabon">`,
+    `<meta property="og:type" content="website"><meta property="og:site_name" content="G-Sports">`,
     `<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc.slice(0, 300))}">`,
     `<meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(abs(image))}">`,
     `<meta property="og:locale" content="fr_GA"><meta name="twitter:card" content="summary_large_image">`,
@@ -320,7 +320,7 @@ if (require.main === module) {
   if (process.env.BACKUPS !== '0') backup();
   setInterval(periodic, 3600e3).unref();
   setInterval(backup, 24 * 3600e3).unref();
-  server.listen(PORT, () => console.log(`G-Sports Gabon : ${SITE_URL}  (base : ${DB_PATH})`));
+  server.listen(PORT, () => console.log(`G-Sports : ${SITE_URL}  (base : ${DB_PATH})`));
 }
 process.on('unhandledRejection', e => logError(e));
 

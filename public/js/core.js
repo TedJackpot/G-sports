@@ -1,5 +1,5 @@
 import { picto, styleFor } from './pictos.js';
-// G-Sports Gabon – noyau front : rendu, API, routeur, état, composants partagés
+// G-Sports – noyau front : rendu, API, routeur, état, composants partagés
 
 // ---------- Gabarits HTML sûrs (échappement automatique) ----------
 export class Raw { constructor(s) { this.s = s; } toString() { return this.s; } }
@@ -96,7 +96,7 @@ export function setQuery(params, { replace = true } = {}) {
 }
 
 export function setMeta(title, desc) {
-  document.title = title ? `${title} | G-Sports Gabon` : 'G-Sports Gabon';
+  document.title = title ? `${title} | G-Sports` : 'G-Sports';
   if (desc) { let m = document.querySelector('meta[name="description"]'); if (!m) { m = document.createElement('meta'); m.name = 'description'; document.head.appendChild(m); } m.content = desc; }
 }
 
@@ -333,9 +333,9 @@ export function emptyCity(cityName, { what } = {}) {
     </div></div>`;
 }
 action('invite', async () => {
-  const text = "Référencez vos activités pour les jeunes sur G-Sports Gabon : les parents y comparent tarifs, horaires et modalités d'inscription.";
+  const text = "Référencez vos activités pour les jeunes sur G-Sports : les parents y comparent tarifs, horaires et modalités d'inscription.";
   const url = location.origin + '/inscription-pro';
-  if (navigator.share) { try { await navigator.share({ title: 'G-Sports Gabon', text, url }); } catch { /* annulé */ } }
+  if (navigator.share) { try { await navigator.share({ title: 'G-Sports', text, url }); } catch { /* annulé */ } }
   else openModal(html`<h3>Inviter un club ou un coach</h3><p class="muted">Partagez ce lien avec la structure :</p>
     <input class="input" readonly value="${url}" aria-label="Lien d'inscription">
     <div class="row" style="margin-top:12px"><a class="btn btn-wa" href="https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}" target="_blank" rel="noopener">${icon('wa', 18)} WhatsApp</a>
@@ -439,7 +439,7 @@ export function season() {
 export function renderLayout() {
   const me = state.me;
   $('#header').innerHTML = String(html`<div class="container bar">
-    <a class="logo" href="/" aria-label="G-Sports Gabon, accueil"><img src="/img/icons/icon-192.png" alt="" width="34" height="34"><span class="wordmark">G-Sports</span><small>Gabon</small></a>
+    <a class="logo" href="/" aria-label="G-Sports, accueil"><img src="/img/icons/icon-192.png" alt="" width="34" height="34"><span class="wordmark"><b>G</b>-Sports</span></a>
     <nav class="main-nav" aria-label="Navigation principale">${NAV.map(([h, l]) => html`<a href="${h}" class="${isActive(h) ? 'active' : ''}">${l}</a>`)}</nav>
     <div class="header-actions">
       <a class="icon-btn hide-sm" href="/favoris" aria-label="Mes favoris">${icon('heart')}</a>
@@ -456,14 +456,14 @@ export function renderLayout() {
     <a href="${me ? spaceLink() : '/connexion'}" class="${me && isActive(spaceLink()) ? 'active' : ''}">${icon('user')}${me ? 'Mon espace' : 'Compte'}</a>`);
   $('#footer').innerHTML = String(html`<div class="container">
     <div class="cols">
-      <div><a class="logo" href="/"><img src="/img/icons/icon-192.png" alt="" width="34" height="34"><span class="wordmark">G-Sports</span><small>Gabon</small></a>
+      <div><a class="logo" href="/"><img src="/img/icons/icon-192.png" alt="" width="34" height="34"><span class="wordmark"><b>G</b>-Sports</span></a>
         <p class="footer-slogan">${state.meta?.home?.slogan || 'À chaque jeune son activité. À chaque talent son terrain.'}</p>
         ${installAvailable() ? html`<p style="margin-top:14px"><button class="btn btn-primary btn-sm" data-action="install">${icon('download', 16)} Installer l'application</button></p>` : ''}</div>
       <div><h4>Explorer</h4><ul><li><a href="/activites">Toutes les activités</a></li><li><a href="/sports">Sports</a></li><li><a href="/extrascolaire">Extrascolaire</a></li><li><a href="/stages">Stages</a></li><li><a href="/camps">Camps de vacances</a></li><li><a href="/calendrier">Calendrier</a></li><li><a href="/carte">Carte du Gabon</a></li></ul></div>
       <div><h4>Professionnels</h4><ul><li><a href="/inscription-pro">Référencer mon activité</a></li><li><a href="/publier">Publier une annonce</a></li><li><a href="/modeles">Modèles d'annonces</a></li><li><a href="/clubs">Clubs & salles</a></li><li><a href="/coachs">Coachs</a></li></ul></div>
       <div><h4>G-Sports</h4><ul><li><a href="/a-propos">À propos</a></li><li><a href="/comment-ca-marche">Comment ça marche</a></li><li><a href="/securite">Sécurité des jeunes</a></li><li><a href="/faq">FAQ</a></li><li><a href="/contact">Contact</a></li><li><a href="/signalement">Signaler un contenu</a></li></ul></div>
     </div>
-    <div class="bottom"><span>© ${new Date().getFullYear()} G-Sports Gabon — mise en relation entre familles et professionnels</span>
+    <div class="bottom"><span>© ${new Date().getFullYear()} G-Sports — mise en relation entre familles et professionnels</span>
       <span><a href="/conditions">Conditions d'utilisation</a> · <a href="/confidentialite">Confidentialité</a></span></div></div>`);
 }
 function updateNav() {
@@ -474,7 +474,7 @@ action('drawer', () => {
   const me = state.me;
   const d = $('#drawer');
   d.innerHTML = String(html`<div class="scrim" data-action="close-drawer"></div><div class="panel" role="dialog" aria-label="Menu">
-    <div class="row between" style="margin-bottom:8px"><span class="logo"><span class="wordmark">G-Sports</span><small>Gabon</small></span>
+    <div class="row between" style="margin-bottom:8px"><span class="logo"><span class="wordmark"><b>G</b>-Sports</span></span>
       <button class="icon-btn" data-action="close-drawer" aria-label="Fermer le menu">${icon('close')}</button></div>
     ${NAV.map(([h, l]) => html`<a class="nav ${isActive(h) ? 'active' : ''}" href="${h}">${l}</a>`)}
     <a class="nav" href="/calendrier">Calendrier des inscriptions</a><a class="nav" href="/carte">Carte du Gabon</a>
@@ -507,10 +507,10 @@ const isStandalone = () => window.matchMedia('(display-mode: standalone)').match
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const installAvailable = () => !isStandalone() && (!!deferredPrompt || isIOS());
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; renderLayout(); document.dispatchEvent(new Event('gs:install')); });
-window.addEventListener('appinstalled', () => { deferredPrompt = null; renderLayout(); toast('G-Sports Gabon est installé', 'ok'); });
+window.addEventListener('appinstalled', () => { deferredPrompt = null; renderLayout(); toast('G-Sports est installé', 'ok'); });
 action('install', async () => {
   if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice.catch(() => null); deferredPrompt = null; renderLayout(); return; }
-  openModal(html`<h3>Installer G-Sports Gabon</h3>
+  openModal(html`<h3>Installer G-Sports</h3>
     <p>Sur iPhone ou iPad (Safari) :</p><ol><li>Touchez le bouton <b>Partager</b> (carré avec une flèche).</li><li>Choisissez <b>« Sur l'écran d'accueil »</b>.</li><li>Validez avec <b>Ajouter</b>.</li></ol>
     <p class="muted small">Sur Android, Windows ou Mac, utilisez le menu du navigateur (Chrome, Edge) : « Installer l'application ». L'application reste utilisable dans le navigateur sans installation.</p>`);
 });

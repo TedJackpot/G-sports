@@ -1,4 +1,4 @@
-// G-Sports Gabon – pictogrammes d'activités dessinés pour le site (style pictogrammes sportifs).
+// G-Sports – pictogrammes d'activités dessinés pour le site (style pictogrammes sportifs).
 // Chaque activité a son pictogramme et sa couleur : aucune image ne montre une autre activité.
 
 const L = (pts) => `<polyline points="${pts}" />`;
@@ -67,3 +67,23 @@ export function picto(key, { size = 64, title = '' } = {}) {
 }
 export function pictoFor(catSlug, groupSlug, opts) { return picto(styleFor(catSlug, groupSlug).key, opts); }
 export const PICTO_KEYS = Object.keys(DRAW);
+
+// Photos fournies (et découpées) qui correspondent réellement à une famille ou une activité.
+// Familles sans photo correspondante (danse, arts, éducatif, bien-être) : pictogramme uniquement.
+const GROUP_PHOTOS = {
+  'sports-collectifs': 'football-entrainement', 'sports-individuels': 'multisport', 'arts-martiaux': 'arts-martiaux',
+  aquatique: 'natation-cours', nature: 'exploration-nature',
+};
+const CAT_PHOTOS = {
+  football: 'football-entrainement', futsal: 'football-jonglage', basketball: 'basket-dribble',
+  karate: 'arts-martiaux-2', judo: 'arts-martiaux-2', taekwondo: 'arts-martiaux', 'boxe-educative': 'arts-martiaux', kickboxing: 'arts-martiaux',
+  lutte: 'arts-martiaux-2', aikido: 'arts-martiaux-2', 'jiu-jitsu': 'arts-martiaux-2', 'self-defense-jeunes': 'arts-martiaux',
+  'natation-debutant': 'natation-cours', 'natation-perfectionnement': 'natation-dos', 'natation-competition': 'natation-groupe', natation: 'natation-cours',
+  'stages-aquatiques': 'natation-groupe', 'aquagym-jeunes': 'natation-initiation', randonnee: 'randonnee-foret', 'camping-encadre': 'camp-nature',
+  'decouverte-de-la-nature': 'exploration-nature', excursions: 'exploration-nature', 'observation-de-la-faune': 'exploration-nature', 'camps-de-vacances': 'camp-nature',
+};
+// Activité précise : seulement une photo de cette activité. Famille entière : photo de la famille.
+export function photoFor(catSlug, groupSlug, small = true) {
+  const name = catSlug ? CAT_PHOTOS[catSlug] : GROUP_PHOTOS[groupSlug];
+  return name ? `/img/photos/${name}${small ? '-sm' : ''}.jpg` : null;
+}
