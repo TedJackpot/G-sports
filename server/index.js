@@ -109,7 +109,7 @@ function template() {
   return TEMPLATE;
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const DEFAULT_DESC = "G-Sports Gabon : plateforme nationale et gratuite pour trouver une activité sportive, artistique, éducative ou de loisirs pour les enfants et les jeunes partout au Gabon.";
+const DEFAULT_DESC = "G-Sports Gabon : trouver une activité sportive, artistique, éducative ou de loisirs pour les 5–18 ans partout au Gabon. Tarifs, horaires et modalités d'inscription.";
 const STATIC_PAGES = {
   '/': ['G-Sports Gabon – Trouvez l\'activité qui fera grandir votre enfant', DEFAULT_DESC],
   '/activites': ['Explorer les activités pour enfants et jeunes au Gabon', 'Recherchez par ville, âge, catégorie, tarif et disponibilités parmi les activités référencées au Gabon.'],
@@ -122,11 +122,11 @@ const STATIC_PAGES = {
   '/camps': ['Camps de vacances pour enfants et ados au Gabon', 'Camps sportifs, nature, culturels et multisports : dates, tarifs, encadrement.'],
   '/calendrier': ['Calendrier des inscriptions, stages et camps', 'Toutes les dates d\'inscription, de stages et de camps à venir au Gabon.'],
   '/carte': ['Carte des activités au Gabon', 'Explorez les activités par province et par ville sur la carte du Gabon.'],
-  '/publier': ['Publier une annonce gratuitement – G-Sports', 'Clubs, coachs, associations : publiez vos activités gratuitement.'],
+  '/publier': ['Publier une annonce – G-Sports', 'Clubs, coachs, associations : présentez vos activités, tarifs et modalités d’inscription aux familles.'],
   '/connexion': ['Connexion – G-Sports Gabon', DEFAULT_DESC], '/inscription': ['Créer un compte parent – G-Sports Gabon', DEFAULT_DESC],
-  '/inscription-pro': ['Référencer mon activité gratuitement – G-Sports Gabon', 'Inscription gratuite pour clubs, salles, associations, coachs et organisateurs.'],
+  '/inscription-pro': ['Référencer mon activité – G-Sports Gabon', 'Compte professionnel pour clubs, salles, associations, coachs et organisateurs.'],
   '/favoris': ['Mes favoris – G-Sports', DEFAULT_DESC], '/a-propos': ['À propos de G-Sports Gabon', DEFAULT_DESC],
-  '/comment-ca-marche': ['Comment fonctionne G-Sports ?', 'Trouver une activité en moins de 30 secondes, contacter directement le club ou le coach, gratuitement.'],
+  '/comment-ca-marche': ['Comment fonctionne G-Sports ?', 'Trouver une activité en moins de 30 secondes, comparer tarifs et modalités d’inscription, contacter directement le club ou le coach.'],
   '/contact': ['Contacter G-Sports', DEFAULT_DESC], '/faq': ['Questions fréquentes – G-Sports', DEFAULT_DESC],
   '/conditions': ["Conditions d'utilisation – G-Sports", DEFAULT_DESC], '/confidentialite': ['Politique de confidentialité – G-Sports', DEFAULT_DESC],
   '/signalement': ['Signaler un contenu – G-Sports', DEFAULT_DESC], '/modeles': ["Modèles d'annonces – G-Sports", 'Modèles prêts à l\'emploi pour publier rapidement une activité, un stage ou un camp.'],
@@ -182,7 +182,7 @@ async function buildPage(req) {
     const label = what ? what.name : (m[3] ? m[3].replace(/-/g, ' ') : 'Activités');
     const where = city ? `à ${city.name}` : 'au Gabon';
     title = `${label} pour enfants et jeunes ${where} | G-Sports`;
-    desc = `Trouvez ${label.toLowerCase()} ${where} : clubs, coachs, stages et camps, âges, horaires et tarifs. Gratuit.`;
+    desc = `Trouvez ${label.toLowerCase()} ${where} : clubs, coachs, stages et camps, âges, horaires, tarifs et modalités d'inscription.`;
     const q = { limit: 1 };
     if (city) q.city = city.slug;
     if (m[3]) { if ((await db.prepare('SELECT 1 FROM categories WHERE slug = ?').get(m[3]))) q.cat = m[3]; else if ((await db.prepare('SELECT 1 FROM category_groups WHERE slug = ?').get(m[3]))) q.group = m[3]; else if (m[3] === 'vacances') q.holidays = '1'; }

@@ -6,7 +6,7 @@ import {
 } from './core.js';
 
 const authShell = (title, sub, body) => html`<div class="auth-wrap"><div class="card pad auth-card fade-in">
-  <a class="logo" href="/" style="margin-bottom:14px"><img src="/img/icons/icon-192.png" alt="" width="40" height="40"><span>G-Sports<small>Gabon</small></span></a>
+  <a class="logo" href="/" style="margin-bottom:14px"><span class="wordmark">G-Sports</span><small>Gabon</small></a>
   <h1 style="font-size:1.6rem">${title}</h1>${sub ? html`<p class="muted">${sub}</p>` : ''}${body}</div></div>`;
 const pwdHint = html`<span class="hint">8 caractères minimum, avec au moins une lettre et un chiffre.</span>`;
 async function afterLogin(retour) {
@@ -35,7 +35,7 @@ form('login', async (f, d) => { await api('/api/auth/login', { method: 'POST', b
 addRoute('/inscription', () => {
   if (state.me) { navigate(spaceLink(), { replace: true }); return; }
   setMeta('Créer un compte parent');
-  return authShell('Créer un compte parent', "Gratuit. Le compte est facultatif : il permet d'enregistrer favoris, alertes, profils enfants et demandes.", html`
+  return authShell('Créer un compte parent', "Facultatif : il permet d'enregistrer favoris, alertes, profils enfants et demandes.", html`
     <form class="form" data-form="register-parent"><input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
       <label class="lbl"><span class="req">Nom du parent ou responsable</span><input class="input" name="name" required maxlength="100" autocomplete="name"></label>
       <div class="cols"><label class="lbl"><span class="req">Email</span><input class="input" type="email" name="email" required autocomplete="email"></label>
@@ -53,11 +53,11 @@ form('register-parent', async (f, d) => { await api('/api/auth/register-parent',
 let regLogo = null;
 addRoute('/inscription-pro', () => {
   if (state.me?.role === 'pro') { navigate('/espace-pro', { replace: true }); return; }
-  setMeta('Référencer mon activité gratuitement');
+  setMeta('Référencer mon activité');
   regLogo = null;
   const types = Object.entries(state.meta.profileTypes);
   return html`<div class="page-head has-img"><div class="bg" style="background-image:url('${photo('basket-dribble', true)}')"></div><div class="container">
-    <h1>Vous êtes un club, une association, un gymnase, un coach ou un organisateur ?</h1><p>Référencez votre activité gratuitement : aucun abonnement, aucune commission, aucune mise en avant payante.</p></div></div>
+    <h1>Vous êtes un club, une association, un gymnase, un coach ou un organisateur ?</h1><p>Présentez vos activités aux familles : tarifs, horaires, modalités d'inscription. Les demandes des parents arrivent directement chez vous.</p></div></div>
   <div class="container" style="padding:24px 16px 40px;max-width:860px">
     ${state.me ? html`<div class="notice warn" style="margin-bottom:14px">Vous êtes connecté avec un compte ${state.me.role}. Déconnectez-vous pour créer un compte professionnel avec une autre adresse email.</div>` : ''}
     <form class="form" data-form="register-pro"><input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -81,7 +81,7 @@ addRoute('/inscription-pro', () => {
       <label class="check"><input type="checkbox" name="accept" required> J'accepte les <a href="/conditions" target="_blank">conditions d'utilisation</a>.</label>
       <label class="check"><input type="checkbox" name="accept_minors" required> Je m'engage à respecter la <a href="/securite" target="_blank">charte de protection des mineurs</a> : contacts uniquement avec les parents, photos d'enfants seulement avec autorisation, informations exactes.</label>
       <p class="form-error" role="alert"></p>
-      <button class="btn btn-primary btn-lg" type="submit">Référencer mon activité gratuitement</button>
+      <button class="btn btn-primary btn-lg" type="submit">Créer mon compte professionnel</button>
       <p class="small muted">Votre compte sera examiné par la modération. Vous pouvez préparer votre profil et vos annonces immédiatement : elles seront publiées dès la validation.</p>
     </form></div>`;
 });
@@ -154,7 +154,7 @@ addRoute('/espace-parent', async (ctx) => {
         <div class="acts"><a class="btn btn-ghost btn-sm" href="/activites?age=${c.age}">Activités adaptées</a><button class="btn btn-ghost btn-sm" data-action="edit-child" data-id="${c.id}" data-n="${c.nickname}" data-a="${c.age}" data-i="${c.interests}">Modifier</button><button class="btn btn-ghost btn-sm" data-action="del-child" data-id="${c.id}">Supprimer</button></div></div>`)}</div>
       <form class="card pad form" data-form="child" style="margin-top:16px"><h3 id="child-form-title">Ajouter un enfant</h3><input type="hidden" name="id">
         <div class="cols"><label class="lbl"><span class="req">Prénom ou surnom</span><input class="input" name="nickname" required maxlength="40"></label><label class="lbl"><span class="req">Âge</span><input class="input" type="number" name="age" min="3" max="25" required inputmode="numeric"></label></div>
-        <div class="lbl">Centres d'intérêt <span class="hint">(facultatif)</span><div class="pill-checks">${state.meta.groups.map((g) => html`<label><input type="checkbox" data-multi name="interests" value="${g.name}"><span>${g.icon} ${g.name}</span></label>`)}</div></div>
+        <div class="lbl">Centres d'intérêt <span class="hint">(facultatif)</span><div class="pill-checks">${state.meta.groups.map((g) => html`<label><input type="checkbox" data-multi name="interests" value="${g.name}"><span>${g.name}</span></label>`)}</div></div>
         <p class="form-error" role="alert"></p><button class="btn btn-navy" type="submit">Enregistrer</button></form>`;
   } else if (tab === 'favoris') {
     const r = await api('/api/me/favorites');
@@ -165,7 +165,7 @@ addRoute('/espace-parent', async (ctx) => {
       <div class="grid" style="gap:8px">${r.items.map((a) => html`<div class="item-row"><div class="grow"><b>${a.grp || 'Toutes activités'}</b><div class="small muted">${a.city || 'Tout le Gabon'}${a.age ? ` · ${a.age} ans` : ''}${a.kinds ? ' · ' + a.kinds.split(',').map((k) => state.meta.kinds[k]).join(', ') : ''}</div></div><button class="btn btn-ghost btn-sm" data-action="del-alert" data-id="${a.id}">Supprimer</button></div>`)}</div>
       <form class="card pad form" data-form="alert" style="margin-top:16px"><h3>Nouvelle alerte</h3>
         <div class="cols three"><label class="lbl">Ville${citySelect('city_id', state.me.city_id, { placeholder: 'Tout le Gabon', byId: true })}</label>
-        <label class="lbl">Famille d'activités<select class="input" name="group_id"><option value="">Toutes</option>${state.meta.groups.map((g) => html`<option value="${g.id}">${g.icon} ${g.name}</option>`)}</select></label>
+        <label class="lbl">Famille d'activités<select class="input" name="group_id"><option value="">Toutes</option>${state.meta.groups.map((g) => html`<option value="${g.id}">${g.name}</option>`)}</select></label>
         <label class="lbl">Âge de l'enfant<input class="input" type="number" name="age" min="3" max="25" inputmode="numeric"></label></div>
         <div class="lbl">Types d'annonces <span class="hint">(aucun = tous)</span><div class="pill-checks">${[['activite', 'Activités'], ['stage', 'Stages'], ['camp', 'Camps'], ['inscriptions', 'Ouvertures d\'inscriptions'], ['decouverte', 'Journées découverte']].map(([k, l]) => html`<label><input type="checkbox" data-multi name="kinds" value="${k}"><span>${l}</span></label>`)}</div></div>
         <p class="form-error" role="alert"></p><button class="btn btn-navy" type="submit">Créer l'alerte</button></form>`;

@@ -131,9 +131,19 @@ function badges(l) {
   return b;
 }
 function photoUrl(p) { return p || null; }
+// Photo d'illustration UNIQUEMENT si elle montre la même activité que l'annonce (sinon aucune image)
+const MATCHING_PHOTOS = {
+  football: 'football-entrainement', futsal: 'football-jonglage',
+  basketball: 'basket-dribble',
+  'natation-debutant': 'natation-cours', 'natation-perfectionnement': 'natation-dos', 'natation-competition': 'natation-groupe',
+  natation: 'natation-cours', 'stages-aquatiques': 'natation-groupe', 'aquagym-jeunes': 'natation-initiation',
+  randonnee: 'randonnee-foret', 'camping-encadre': 'camp-nature', 'decouverte-de-la-nature': 'exploration-nature',
+  excursions: 'exploration-nature', 'observation-de-la-faune': 'exploration-nature', 'camps-de-vacances': 'camp-nature',
+};
+function matchingPhoto(catSlug) { return MATCHING_PHOTOS[catSlug] ? `/img/photos/${MATCHING_PHOTOS[catSlug]}.jpg` : null; }
 function serializeListing(l, full = false) {
   const photos = json(l.photos, []);
-  const cover = l.cover || photos[0] || (l.group_image ? `/img/photos/${l.group_image}.jpg` : null);
+  const cover = l.cover || photos[0] || matchingPhoto(l.cat_slug);
   const out = {
     id: l.id, slug: l.slug, url: `/annonce/${l.id}-${l.slug}`, kind: l.kind, kind_label: KINDS[l.kind] || 'Activité',
     title: l.title, activity: l.activity, cat_name: l.cat_name, cat_slug: l.cat_slug,

@@ -3,102 +3,88 @@ import {
   html, raw, esc, $, $$, api, state, addRoute, navigate, setMeta, action, form, onMount, toast, openModal, closeModal, icon,
   fmtDate, fmtPrice, fmtAge, LEVEL_LABELS, DAY_LABELS, SETTING_LABELS, GENDER_LABELS, AGE_GROUP_LABELS, MONTHS_LONG, todayStr,
   cityBySlug, groupBySlug, catBySlug, photo, initials, listingCard, profileCard, emptyCity, citySelect, provinceSelect,
-  categorySelect, ageSelect, skeletonGrid, favBtn, badgeList, lsGet, lsSet, installAvailable, spaceLink, render,
+  categorySelect, ageSelect, skeletonGrid, favBtn, badgeList, lsGet, lsSet, installAvailable, spaceLink, render, priceParts, regLine, daysText,
 } from './core.js';
 
-// ================= ACCUEIL =================
-// Met en valeur le mot « grandir » (ou le dernier mot) du titre principal
+// ================= ACCUEIL (style éditorial) =================
+// Met en italique la seconde moitié du titre (« … qui fera grandir votre enfant. »)
 function heroTitle(t) {
-  const m = /^(.*?)(grandir)(.*)$/i.exec(t);
-  if (m) return html`${m[1]}<span class="hl">${m[2]}</span>${m[3]}`;
-  return t;
+  const i = t.indexOf(' qui ');
+  if (i > 0) return html`${t.slice(0, i)} <em>${t.slice(i + 1)}</em>`;
+  const w = t.split(' ');
+  return html`${w.slice(0, -2).join(' ')} <em>${w.slice(-2).join(' ')}</em>`;
 }
-function rail(items, emptyMsg) {
-  if (!items.length) return html`<div class="empty" style="padding:22px"><p style="margin:0">${emptyMsg || 'Aucune annonce pour le moment.'} <a href="/inscription-pro">Vous êtes un club ou un coach ? Publiez gratuitement.</a></p></div>`;
-  return html`<div class="rail">${items.map(listingCard)}</div>`;
+function entries(items, emptyMsg) {
+  if (!items.length) return html`<p class="none">${emptyMsg || 'Aucune annonce pour le moment.'} <a href="/inscription-pro">Vous êtes un club ou un coach ? Publiez votre activité.</a></p>`;
+  return html`<div class="entries">${items.map(listingCard)}</div>`;
 }
-function section(title, sub, link, body, alt = false, eyebrow = '') {
-  return html`<section class="section ${alt ? 'alt' : ''}"><div class="container">
-    <div class="section-head"><div>${eyebrow ? html`<span class="eyebrow">${eyebrow}</span>` : ''}<h2>${title}</h2>${sub ? html`<p>${sub}</p>` : ''}</div>
-    ${link ? html`<a class="btn btn-ghost btn-sm" href="${link}">Tout voir →</a>` : ''}</div>${body}</div></section>`;
+let sectionNo = 0;
+function section(title, sub, link, body, { linkLabel = 'Tout voir' } = {}) {
+  sectionNo += 1;
+  return html`<section class="section"><div class="container">
+    <header class="section-head"><span class="section-num">${String(sectionNo).padStart(2, '0')}</span>
+      <div class="section-title"><h2>${title}</h2>${sub ? html`<p>${sub}</p>` : ''}</div>
+      ${link ? html`<a class="more" href="${link}">${linkLabel} →</a>` : ''}</header>${body}</div></section>`;
 }
 addRoute('/', async () => {
-  setMeta(null, 'Trouvez gratuitement une activité sportive, artistique ou éducative pour votre enfant partout au Gabon.');
-  const [home] = await Promise.all([api('/api/home')]);
+  setMeta(null, 'Trouvez une activité sportive, artistique ou éducative pour votre enfant partout au Gabon : tarifs, horaires, modalités d\'inscription.');
+  const home = await api('/api/home');
   const m = state.meta;
   const h = m.home || {};
+  sectionNo = 0;
   const hasDemo = [...home.newest, ...home.popular].some((l) => l.is_demo);
   const prefCity = state.me ? (state.me.preferred_cities?.[0] || state.me.city_id) : lsGet('gs_city', null);
   const prefCityObj = prefCity ? m.cities.find((c) => c.id === Number(prefCity) || c.slug === prefCity) : null;
   const clubs = prefCityObj ? [...home.clubs.filter((c) => c.city?.slug === prefCityObj.slug), ...home.clubs.filter((c) => c.city?.slug !== prefCityObj.slug)] : home.clubs;
-  const discover = m.groups.slice(0, 10);
   return html`
-  <section class="hero">
-    <div class="bg" style="background-image:url('${photo(h.heroImage || 'basket-joie')}')"></div>
-    <div class="container inner">
-      <span class="kicker">🇬🇦 Partout au Gabon · 100 % gratuit</span>
-      <h1>${heroTitle(h.heroTitle || "Trouvez l'activité qui fera grandir votre enfant.")}</h1>
-      <p class="sub">${h.heroSubtitle || 'Sports, loisirs, clubs, coachs, stages et activités extrascolaires partout au Gabon.'}</p>
-      <form class="search-card" data-form="hero-search" role="search">
-        <label class="field"><span>Quelle activité recherchez-vous ?</span><input name="q" list="dl-acts" placeholder="Football, natation, danse, robotique…" autocomplete="off"></label>
-        <label class="field"><span>Dans quelle ville ?</span>${citySelect('city', prefCityObj?.slug, { placeholder: 'Tout le Gabon', cls: '' })}</label>
-        <label class="field"><span>Quel âge a votre enfant ?</span>${ageSelect('age', '', { placeholder: 'Tous âges', cls: '' })}</label>
-        <button class="btn btn-primary btn-lg" type="submit">${icon('search')} Trouver une activité</button>
-        <datalist id="dl-acts">${m.groups.flatMap((g) => [html`<option value="${g.name}">`, ...g.categories.map((c) => html`<option value="${c.name}">`)])}</datalist>
-      </form>
-      <div class="chips scroll" style="margin-top:16px">${m.groups.map((g) => html`<a class="chip" href="/activites?what=g:${g.slug}">${g.icon} ${g.name}</a>`)}</div>
-      <div class="hero-stats">
-        ${home.stats.listings >= 10 ? html`<div><b>${home.stats.listings}</b>annonces actives</div><div><b>${home.stats.profiles}</b>clubs & coachs</div>`
-          : html`<div><b>100 %</b>gratuit, sans abonnement</div><div><b>Direct</b>contact avec le club ou le coach</div>`}
-        <div><b>9</b>provinces couvertes</div>
-        <div class="hide-xs"><b>5 ans +</b>sport, art, nature, sciences</div>
-      </div>
-    </div>
-  </section>
-  ${h.banner ? html`<div class="container" style="margin-top:16px"><div class="notice">${h.banner}</div></div>` : ''}
-  ${hasDemo ? html`<div class="container" style="margin-top:16px"><div class="notice demo"><b>Exemples fictifs :</b> les annonces marquées « Exemple fictif » illustrent la présentation des offres. Elles ne correspondent à aucune activité réelle et seront retirées dès l'arrivée des premières annonces.</div></div>` : ''}
-  ${home.posts.length ? html`<div class="container" style="margin-top:16px">${home.posts.map((p) => html`<div class="notice" style="margin-bottom:8px"><b>${p.title}</b> — ${p.body.slice(0, 220)} ${p.link ? html`<a href="${p.link}">En savoir plus</a>` : ''}</div>`)}</div>` : ''}
-
-  ${section('Activités populaires', 'Les annonces les plus consultées par les familles.', '/activites?sort=populaire', rail(home.popular))}
-  ${section("Trouver une activité par âge", 'Des propositions adaptées à chaque étape de croissance.', null, html`<div class="age-grid">
-    ${Object.entries(AGE_GROUP_LABELS).map(([k, l]) => html`<a class="age-tile" href="/activites?age=t:${k}"><b>${l.replace(' ans', '').replace(' et +', '+')}</b><span>ans</span></a>`)}</div>`, true)}
-  ${section('Explorer par ville', "Libreville, Port-Gentil, Franceville, Oyem… et toutes les localités du Gabon.", '/carte', html`<div class="city-grid">
-    ${home.cityCounts.map((c) => html`<a class="city-tile" href="/activites/${c.slug}"><span>${c.name}</span><span class="count-pill ${c.n ? '' : 'zero'}">${c.n}</span></a>`)}</div>
-    <p class="small muted" style="margin-top:10px">Une autre localité ? <a href="/activites">Choisissez-la dans la recherche</a> ou <a href="/carte">explorez la carte</a>.</p>`)}
-  ${section('Clubs et salles près de chez vous', prefCityObj ? `Autour de ${prefCityObj.name} en priorité.` : 'Clubs sportifs, gymnases, associations et centres de loisirs.', '/clubs', clubs.length ? html`<div class="grid cards">${clubs.slice(0, 6).map(profileCard)}</div>` : rail([], 'Aucun club référencé pour le moment.'), true)}
-  ${section('Coachs sportifs indépendants', 'Cours individuels ou en groupe, en salle, en extérieur ou à domicile.', '/coachs', home.coaches.length ? html`<div class="grid cards">${home.coaches.slice(0, 6).map(profileCard)}</div>` : rail([], 'Aucun coach référencé pour le moment.'))}
-  ${section('Inscriptions ouvertes actuellement', "Ne manquez pas les dates limites.", '/activites?open=1&sort=inscription', rail(home.open, 'Aucune période d\'inscription ouverte actuellement.'), true, 'En ce moment')}
-  ${section('Stages et camps à venir', 'Stages intensifs, camps sportifs, nature et culturels.', '/stages', rail(home.camps, 'Aucun stage ou camp à venir pour le moment.'))}
-  ${section('Activités pendant les vacances', 'Pour occuper intelligemment les vacances scolaires.', '/activites?holidays=1', rail(home.holidays, 'Aucune activité de vacances annoncée pour le moment.'), true)}
-  ${section('Nouvelles annonces', 'Les dernières publications des clubs et coachs.', '/annonces', rail(home.newest))}
-  ${section('Activités gratuites ou à petits prix', 'Gratuites ou jusqu\'à 10 000 FCFA.', '/activites?maxprice=10000&sort=prix', rail(home.free, 'Aucune activité gratuite ou à petit prix pour le moment.'), true)}
-  ${section('Les activités à découvrir', 'Sport, art, nature, sciences : explorez toutes les familles d\'activités.', '/activites', html`<div class="cat-grid">
-    ${discover.map((g) => html`<a class="cat-tile" href="/activites?what=g:${g.slug}" style="background:${g.color}">
-      ${g.image ? html`<img src="${photo(g.image, true)}" alt="" loading="lazy">` : ''}
-      <span class="ico">${g.icon}</span><b>${g.name}</b><small>${g.categories.slice(0, 3).map((c) => c.name).join(', ')}…</small></a>`)}</div>`)}
-  ${home.discover.length ? section('Journées découverte & séances d\'essai', 'Pour tester avant de s\'engager.', '/activites?kind=decouverte,essai,portes-ouvertes', rail(home.discover), true) : ''}
-  ${section('Comment fonctionne G-Sports ?', 'Trouver une activité en moins de 30 secondes.', '/comment-ca-marche', html`<div class="steps">
-    <div class="step"><h3>Choisissez la ville</h3><p class="muted">Partout au Gabon : Libreville, Oyem, Moanda, Lambaréné…</p></div>
-    <div class="step"><h3>Indiquez l'âge</h3><p class="muted">Seules les activités adaptées s'affichent.</p></div>
-    <div class="step"><h3>Comparez</h3><p class="muted">Horaires, tarifs, encadrement, dates d'inscription.</p></div>
-    <div class="step"><h3>Contactez directement</h3><p class="muted">Appel, WhatsApp ou message : sans intermédiaire, sans frais.</p></div></div>`, true)}
-  <section class="section"><div class="container">
-    <div class="pro-band">
-      <div><span class="eyebrow" style="color:var(--sun)">Espace clubs et professionnels</span>
-        <h2>Vous êtes un club, une association, un gymnase, un coach ou un organisateur ?</h2>
-        <ul><li>Profil et annonces 100 % gratuits, sans abonnement ni commission</li><li>Publiez activités, stages, camps, portes ouvertes et séances d'essai</li><li>Recevez les demandes des parents directement</li><li>Gérez tout depuis votre téléphone</li></ul>
-        <div class="row" style="margin-top:18px"><a class="btn btn-primary btn-lg" href="/inscription-pro">Référencer mon activité gratuitement</a><a class="btn btn-ghost" href="/modeles">Voir les modèles d'annonces</a></div>
-      </div>
-      <div class="photo"><img src="${photo('football-coach', true)}" alt="Une entraîneuse encadre de jeunes footballeurs" loading="lazy"></div>
-    </div>
+  <section class="masthead"><div class="container">
+    <p class="kicker">Sports · Arts · Nature · Sciences — de 5 à 18 ans, dans les 9 provinces</p>
+    <h1>${heroTitle(h.heroTitle || "Trouvez l'activité qui fera grandir votre enfant.")}</h1>
+    <p class="lede">${h.heroSubtitle || 'Clubs, coachs, stages et activités extrascolaires partout au Gabon.'} Comparez les tarifs, les horaires et les modalités d'inscription, puis contactez directement l'encadrant.</p>
+    <form class="search-card" data-form="hero-search" role="search">
+      <label class="field"><span>Activité</span><input name="q" list="dl-acts" placeholder="Football, natation, danse, robotique…" autocomplete="off"></label>
+      <label class="field"><span>Ville</span>${citySelect('city', prefCityObj?.slug, { placeholder: 'Tout le Gabon', cls: '' })}</label>
+      <label class="field"><span>Âge de l'enfant</span>${ageSelect('age', '', { placeholder: 'Tous âges', cls: '' })}</label>
+      <button class="btn btn-primary" type="submit">Rechercher</button>
+      <datalist id="dl-acts">${m.groups.flatMap((g) => [html`<option value="${g.name}">`, ...g.categories.map((c) => html`<option value="${c.name}">`)])}</datalist>
+    </form>
+    <nav class="index" aria-label="Familles d'activités">
+      ${m.groups.map((g, i) => html`<a href="/activites?what=g:${g.slug}"><span class="n">${String(i + 1).padStart(2, '0')}</span><b>${g.name}</b><small>${g.categories.slice(0, 4).map((c) => c.name).join(', ')}…</small></a>`)}
+    </nav>
   </div></section>
-  <section class="section alt"><div class="container center">
-    <span class="eyebrow">Ensemble, couvrons tout le Gabon</span>
-    <h2>Aidez-nous à référencer les activités de votre ville</h2>
-    <p class="muted" style="max-width:640px;margin:0 auto 18px">Vous connaissez un club, un coach ou une association près de chez vous ? Invitez-les à rejoindre G-Sports : c'est gratuit pour tout le monde.</p>
-    <div class="row" style="justify-content:center"><button class="btn btn-navy" data-action="invite">${icon('share', 18)} Inviter un professionnel</button>
-    ${installAvailable() ? html`<button class="btn btn-ghost" data-action="install">${icon('download', 18)} Installer l'application</button>` : ''}</div>
-  </div></section>`;
+  ${h.banner ? html`<div class="container"><p class="notice">${h.banner}</p></div>` : ''}
+  ${home.posts.map((p) => html`<div class="container"><p class="notice"><b>${p.title}</b> — ${p.body.slice(0, 220)} ${p.link ? html`<a href="${p.link}">En savoir plus</a>` : ''}</p></div>`)}
+  ${hasDemo ? html`<div class="container"><p class="notice demo"><b>Exemples fictifs.</b> Les annonces marquées ainsi montrent la présentation d'une offre ; elles ne correspondent à aucune activité réelle.</p></div>` : ''}
+
+  ${section('Inscriptions ouvertes', "Les périodes d'inscription en cours, classées par date limite.", '/activites?open=1&sort=inscription', entries(home.open, "Aucune période d'inscription ouverte en ce moment."))}
+  ${section('Par âge', 'Seules les activités adaptées à l\'âge choisi s\'affichent.', null, html`<div class="ages">
+    ${Object.entries(AGE_GROUP_LABELS).map(([k, l]) => html`<a href="/activites?age=t:${k}"><b>${l.replace(' ans', '').replace(' et +', '+')}</b><span>ans</span></a>`)}</div>`)}
+  ${section('Par ville', 'Libreville, Port-Gentil, Franceville, Oyem… et toutes les localités du Gabon.', '/carte', html`<div class="toc">
+    ${home.cityCounts.map((c) => html`<a href="/activites/${c.slug}"><span>${c.name}</span><i></i><b>${c.n ? `${c.n} annonce${c.n > 1 ? 's' : ''}` : '—'}</b></a>`)}</div>
+    <p class="small muted">Une autre localité ? <a href="/activites">Choisissez-la dans la recherche</a> ou <a href="/carte">ouvrez la carte</a>.</p>`, { linkLabel: 'Carte du Gabon' })}
+  ${section('Stages et camps à venir', 'Dates, programme, encadrement, repas et transport.', '/stages', entries(home.camps, 'Aucun stage ou camp annoncé pour le moment.'))}
+  ${section('Pendant les vacances', 'Les activités proposées pendant les vacances scolaires.', '/activites?holidays=1', entries(home.holidays, 'Aucune activité de vacances annoncée pour le moment.'))}
+  ${section('Nouvelles annonces', 'Les dernières publications des clubs et des coachs.', '/annonces', entries(home.newest))}
+  ${section('Par budget', 'Tarifs annoncés par les organisateurs, réglés directement auprès d\'eux.', '/activites?maxprice=10000&sort=prix', html`
+    <div class="budgets">${[[10000, "Jusqu'à 10 000 FCFA"], [25000, "Jusqu'à 25 000 FCFA"], [50000, "Jusqu'à 50 000 FCFA"]].map(([v, l]) => html`<a href="/activites?maxprice=${v}&sort=prix">${l}</a>`)}<a href="/activites?sort=prix">Tous, du moins cher au plus cher</a></div>
+    ${entries(home.free, 'Aucune activité à moins de 10 000 FCFA annoncée pour le moment.')}`, { linkLabel: 'Trier par tarif' })}
+  ${home.popular.length ? section('Les plus consultées', null, '/activites?sort=populaire', entries(home.popular.slice(0, 4))) : ''}
+  ${section('Clubs et salles', prefCityObj ? `Autour de ${prefCityObj.name} en priorité.` : 'Clubs sportifs, gymnases, associations et centres de loisirs.', '/clubs', clubs.length ? html`<div class="grid cards">${clubs.slice(0, 6).map(profileCard)}</div>` : entries([], 'Aucun club référencé pour le moment.'))}
+  ${section('Coachs indépendants', 'Cours individuels ou en groupe, en salle, en extérieur ou à domicile.', '/coachs', home.coaches.length ? html`<div class="grid cards">${home.coaches.slice(0, 6).map(profileCard)}</div>` : entries([], 'Aucun coach référencé pour le moment.'))}
+  ${home.discover.length ? section("Journées découverte et séances d'essai", 'Pour essayer avant de s\'engager.', '/activites?kind=decouverte,essai,portes-ouvertes', entries(home.discover)) : ''}
+  ${section("S'inscrire, mode d'emploi", 'Ce que les parents demandent le plus souvent.', '/comment-ca-marche', html`<ol class="steps">
+    <li><h3>Choisir</h3><p>Ville, âge de l'enfant, activité : seules les offres adaptées apparaissent.</p></li>
+    <li><h3>Comparer</h3><p>Tarif et formules, frais annexes (licence, tenue), jours et horaires, encadrement.</p></li>
+    <li><h3>Vérifier les modalités</h3><p>Période et date limite d'inscription, documents demandés (certificat médical, photo, autorisation parentale).</p></li>
+    <li><h3>Contacter</h3><p>Appel, WhatsApp ou message : vous échangez directement avec le club ou le coach, sans intermédiaire.</p></li></ol>`, { linkLabel: 'En savoir plus' })}
+  <section class="section"><div class="container"><div class="pro-band">
+    <div><p class="kicker">Clubs · Associations · Gymnases · Coachs · Organisateurs</p>
+      <h2>Présentez vos activités aux familles de votre ville.</h2>
+      <p>Un profil, autant d'annonces que nécessaire (saison, stages, camps, portes ouvertes, séances d'essai), et les demandes des parents reçues directement sur votre téléphone.</p>
+      <div class="row"><a class="btn btn-primary" href="/inscription-pro">Référencer mon activité</a><a class="btn btn-ghost" href="/modeles">Voir les modèles d'annonces</a></div></div>
+    <div class="pro-aside"><p>Vous connaissez un club ou un coach qui n'est pas encore sur G-Sports ?</p><button class="btn btn-ghost" data-action="invite">Lui envoyer le lien</button>
+      ${installAvailable() ? html`<button class="link-btn" data-action="install">Installer l'application sur ce téléphone</button>` : ''}</div>
+  </div></div></section>`;
 });
 form('hero-search', (f, d) => {
   const qs = new URLSearchParams();
@@ -255,7 +241,7 @@ addRoute('/extrascolaire', (ctx) => explorePage(ctx, { title: 'Activités extras
 addRoute('/stages', (ctx) => explorePage(ctx, { title: 'Stages & camps', crumb: 'Stages & camps', sub: 'Stages intensifs, camps, colonies, journées découverte et week-ends sportifs.', base: '/stages', fixed: { kind: 'stage,camp,decouverte' }, what: 'stage ou camp', image: 'camp-nature', defaults: { sort: 'date' } }));
 addRoute('/stages/:city/:what', (ctx) => { if (ctx.params.city === 'gabon') delete ctx.params.city; return explorePage(ctx, { title: 'Stages & camps', crumb: 'Stages', base: '/stages', fixed: { kind: 'stage,camp,decouverte' }, image: 'camp-nature' }); });
 addRoute('/camps', (ctx) => explorePage(ctx, { title: 'Camps de vacances', crumb: 'Camps', sub: 'Camps sportifs, nature, culturels et multisports : dates, programme, encadrement.', base: '/camps', fixed: { kind: 'camp' }, what: 'camp', image: 'randonnee-foret', defaults: { sort: 'date' } }));
-const ANNONCE_TABS = [['', 'Dernières publications'], ['tab=open&open=1&sort=inscription', 'Inscriptions ouvertes'], ['tab=avenir&upcoming=1&sort=date', 'Activités à venir'], ['tab=vacances&holidays=1', 'Vacances'], ['tab=gratuit&free=1', 'Gratuites'], ['tab=proches&sort=proximite', 'Proches de moi'], ['tab=nouveau&sort=', 'Nouveautés']];
+const ANNONCE_TABS = [['', 'Dernières publications'], ['tab=open&open=1&sort=inscription', 'Inscriptions ouvertes'], ['tab=avenir&upcoming=1&sort=date', 'Activités à venir'], ['tab=vacances&holidays=1', 'Vacances'], ['tab=gratuit&free=1', 'Activités gratuites'], ['tab=proches&sort=proximite', 'Proches de moi'], ['tab=nouveau&sort=', 'Nouveautés']];
 addRoute('/annonces', (ctx) => explorePage(ctx, { title: 'Annonces', crumb: 'Annonces', sub: 'Recrutements, inscriptions, stages, camps, portes ouvertes, tournois et séances d\'essai.', base: '/annonces', tabs: ANNONCE_TABS }));
 
 // ================= FICHE ACTIVITÉ =================
@@ -291,72 +277,75 @@ addRoute('/annonce/:slug', async (ctx) => {
   const wa = l.contact.whatsapp ? `https://wa.me/${l.contact.whatsapp.replace(/[^0-9]/g, '')}?text=${waText}` : null;
   miniMap('lmap', l.lat, l.lng, `${l.title} – ${l.city.name}`);
   const demo = l.is_demo;
+  const p = priceParts(l);
   const regPeriod = l.reg_start || l.reg_end ? `${l.reg_start ? 'Du ' + fmtDate(l.reg_start, true) : ''}${l.reg_end ? (l.reg_start ? ' au ' : "Jusqu'au ") + fmtDate(l.reg_end, true) : ''}` : null;
-  const contactBtns = demo ? html`<div class="notice demo">Exemple fictif : aucune demande ne peut être envoyée.</div>` : html`
-    <button class="btn btn-primary btn-block" data-action="contact" data-type="info">${icon('mail', 18)} Contacter ${l.org.type === 'coach' ? 'le coach' : "l'organisateur"}</button>
-    <button class="btn btn-navy btn-block" data-action="contact" data-type="inscription">Demander une inscription</button>
-    <div class="row" style="gap:8px"><button class="btn btn-ghost" style="flex:1" data-action="contact" data-type="rdv">Prendre rendez-vous</button><button class="btn btn-ghost" style="flex:1" data-action="contact" data-type="essai">Séance découverte</button></div>
-    <div class="row" style="gap:8px">${l.contact.phone ? html`<a class="btn btn-ghost" style="flex:1" href="tel:${l.contact.phone.replace(/\s/g, '')}" data-external>${icon('phone', 18)} Appeler</a>` : ''}
-    ${wa ? html`<a class="btn btn-wa" style="flex:1" href="${wa}" target="_blank" rel="noopener" data-external>${icon('wa', 18)} WhatsApp</a>` : ''}</div>`;
+  // Les photos n'apparaissent que si l'annonce en contient, ou si l'illustration montre la même activité
+  const photos = l.photos.length ? l.photos : (l.cover ? [l.cover] : []);
+  const contactBtns = demo ? html`<p class="notice demo">Exemple fictif : aucune demande ne peut être envoyée.</p>` : html`
+    <button class="btn btn-primary btn-block" data-action="contact" data-type="inscription">Demander une inscription</button>
+    <button class="btn btn-ghost btn-block" data-action="contact" data-type="info">Poser une question</button>
+    <div class="btn-pair"><button class="btn btn-ghost" data-action="contact" data-type="rdv">Rendez-vous</button><button class="btn btn-ghost" data-action="contact" data-type="essai">Séance d'essai</button></div>
+    <div class="btn-pair">${l.contact.phone ? html`<a class="btn btn-ghost" href="tel:${l.contact.phone.replace(/\s/g, '')}" data-external>${icon('phone', 16)} Appeler</a>` : ''}
+    ${wa ? html`<a class="btn btn-wa" href="${wa}" target="_blank" rel="noopener" data-external>${icon('wa', 16)} WhatsApp</a>` : ''}</div>`;
   currentContact = { listing_id: l.id, title: l.title, org: l.org.name, contact: l.contact };
+  const fact = (k, v) => (v ? html`<div><dt>${k}</dt><dd>${v}</dd></div>` : '');
   return html`
-  ${l.preview ? html`<div class="container" style="margin-top:12px"><div class="notice warn"><b>Aperçu :</b> cette annonce n'est pas visible publiquement (statut : ${l.status}).</div></div>` : ''}
-  <div class="detail-hero">
-    ${l.cover ? html`<img class="cover" src="${l.cover}" alt="">` : html`<div class="ph-cover" style="background:${l.group?.color || '#16B8C5'}">${l.group?.icon || '⭐'}</div>`}
-    <div class="overlay"><div class="container">
-      <div class="row" style="gap:6px">${badgeList(l, 5)}${l.cover_is_generic && l.cover ? html`<span class="badge soft">Photo d'illustration</span>` : ''}</div>
-      <h1>${l.title}</h1>
-      <div class="row" style="gap:6px 14px;font-weight:600">${l.kind_label}${l.cat_name ? ' · ' + l.cat_name : ''} <span>${icon('pin', 16)} ${l.city.name}, ${l.province.name}</span></div>
-    </div></div>
-  </div>
+  ${l.preview ? html`<div class="container"><p class="notice warn"><b>Aperçu :</b> cette annonce n'est pas visible publiquement (statut : ${l.status}).</p></div>` : ''}
+  <header class="doc-head"><div class="container">
+    <p class="crumbs"><a href="/">Accueil</a> / <a href="/activites/${l.city.slug}">${l.city.name}</a> / ${l.cat_name || l.kind_label}</p>
+    <p class="kicker">${l.cat_name || ''}${l.cat_name ? ' — ' : ''}${l.kind_label}</p>
+    <h1>${l.title}</h1>
+    <p class="byline">Proposé par <a href="${l.org.url}">${l.org.name}</a> · ${l.city.name}${l.district ? ', ' + l.district : ''} · ${l.province.name}</p>
+    <div class="row tags">${badgeList(l, 5)}<span class="spacer"></span>${favBtn(l.id)}<button class="icon-btn" data-action="share" data-url="${l.url}" data-title="${l.title}" aria-label="Partager l'annonce">${icon('share', 18)}</button></div>
+  </div></header>
   <div class="container detail">
-    <div class="stack" style="--gap:18px">
-      ${demo ? html`<div class="notice demo"><b>Exemple fictif.</b> Cette annonce illustre la structure d'une offre sur G-Sports. Elle ne correspond à aucune activité réelle.</div>` : ''}
-      <div class="row between"><a class="p-card" href="${l.org.url}" style="padding:10px 14px;box-shadow:none;flex:1;min-width:240px">
-        ${l.org.logo ? html`<img class="avatar" src="${l.org.logo}" alt="" style="width:46px;height:46px">` : html`<div class="avatar" style="width:46px;height:46px;font-size:1rem">${initials(l.org.name)}</div>`}
-        <div><b>${l.org.name}</b><div class="small muted">${l.org.type_label} · Voir le profil →</div></div></a>
-        <div class="row">${favBtn(l.id)}<button class="icon-btn" data-action="share" data-url="${l.url}" data-title="${l.title}" aria-label="Partager l'annonce">${icon('share')}</button></div></div>
-      <div class="facts">
-        <div class="fact"><small>Âge</small><b>${fmtAge(l.age_min, l.age_max)}</b></div>
-        <div class="fact"><small>Niveau</small><b>${l.levels.map((x) => LEVEL_LABELS[x]).join(', ')}</b></div>
-        <div class="fact"><small>Débutants</small><b>${l.beginners ? 'Acceptés' : 'Non'}</b></div>
-        <div class="fact"><small>Public</small><b>${GENDER_LABELS[l.gender]}</b></div>
-        <div class="fact"><small>Tarif</small><b>${fmtPrice(l)}</b></div>
-        <div class="fact"><small>Places</small><b>${l.places_status === 'complet' ? 'Complet' : l.places ? `${l.places} places${l.places_status === 'limitees' ? ' (limitées)' : ''}` : l.places_status === 'limitees' ? 'Limitées' : 'Non précisé'}</b></div>
-        <div class="fact"><small>Lieu</small><b>${SETTING_LABELS[l.setting]}</b></div>
-        <div class="fact"><small>Inscriptions</small><b>${l.reg_state === 'ouvertes' ? 'Ouvertes' : l.reg_state === 'bientot' ? 'Bientôt' : l.reg_state === 'closes' ? 'Closes' : l.reg_state === 'complet' ? 'Complet' : 'Voir modalités'}</b></div>
-      </div>
-      <div class="card pad"><h2 style="font-size:1.3rem">Description</h2><p class="prose">${l.description}</p>
-        ${l.objectives.length ? html`<h3>Objectifs</h3><ul class="tick-list">${l.objectives.map((o) => html`<li>${o}</li>`)}</ul>` : ''}
-        ${l.learn ? html`<h3 style="margin-top:16px">Ce que l'enfant va apprendre</h3><p class="prose">${l.learn}</p>` : ''}</div>
-      <div class="card pad"><h2 style="font-size:1.3rem">Calendrier & horaires</h2>
-        ${l.days.length ? html`<div class="days" style="margin-bottom:12px">${Object.entries(DAY_LABELS).map(([k, d]) => html`<span class="${l.days.includes(k) ? 'on' : ''}">${d}</span>`)}</div>` : ''}
-        <div class="info-list">${row('Horaires', l.schedule)}${row('Durée des séances', l.session_duration)}${row('Date de début', l.start_date && fmtDate(l.start_date, true))}${row('Date de fin', l.end_date && fmtDate(l.end_date, true))}
-        ${row('Période d\'inscription', regPeriod)}${row('Date limite', l.reg_end && fmtDate(l.reg_end, true))}${isCamp ? row('Arrivée', l.arrival_time) : ''}${isCamp ? row('Départ', l.departure_time) : ''}${row('Durée', l.duration)}</div>
-        ${!l.schedule && !l.start_date && !l.days.length ? html`<p class="muted">Horaires non renseignés : contactez l'organisateur.</p>` : ''}</div>
-      <div class="card pad"><h2 style="font-size:1.3rem">Tarifs</h2>
-        <div class="info-list">${row('Tarif', fmtPrice(l))}${row('Précisions', l.price_amount != null || l.is_free ? l.price_text : null)}${row('Frais supplémentaires', l.extra_fees)}</div>
-        ${l.formulas.length ? html`<div class="grid cards" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">${l.formulas.map((fo) => html`<div class="fact"><small>${fo.name}</small><b>${fo.price || 'Sur demande'}</b>${fo.details ? html`<div class="small muted">${fo.details}</div>` : ''}</div>`)}</div>` : ''}
-        <p class="small muted" style="margin:10px 0 0">Les tarifs sont fixés librement par l'organisateur et réglés directement auprès de lui. G-Sports ne prélève aucun frais.</p></div>
-      ${isCamp && (l.program || l.included || l.not_included || l.meals || l.lodging || l.transport) ? html`<div class="card pad"><h2 style="font-size:1.3rem">Programme & organisation</h2>
-        <div class="info-list">${row('Programme', l.program)}${row('Inclus dans le prix', l.included)}${row('Non inclus', l.not_included)}${row('Repas', l.meals)}${row('Hébergement', l.lodging)}${row('Transport', l.transport)}</div></div>` : ''}
-      ${l.equipment || l.outfit || l.conditions || l.supervision || l.safety || l.registration_info ? html`<div class="card pad"><h2 style="font-size:1.3rem">Informations pratiques</h2>
-        <div class="info-list">${row('Matériel à prévoir', l.equipment)}${row('Tenue recommandée', l.outfit)}${row('Conditions de participation', l.conditions)}${row('Encadrement', l.supervision)}${row('Sécurité', l.safety)}${row("Modalités d'inscription", l.registration_info)}</div></div>` : ''}
-      ${l.photos.length > 1 ? html`<div class="card pad"><h2 style="font-size:1.3rem">Photos</h2><div class="gallery">${l.photos.map((p) => html`<img src="${p}" alt="" loading="lazy" data-action="zoom" data-src="${p}">`)}</div></div>` : ''}
-      <div class="card pad"><h2 style="font-size:1.3rem">Localisation</h2><p>${l.address || ''}${l.district ? (l.address ? ', ' : '') + l.district : ''} ${l.city.name}, ${l.province.name}</p>
-        ${l.lat != null ? html`<div class="map-box" id="lmap"></div>${l.approx_location ? html`<p class="small muted" style="margin-top:6px">Position approximative (centre de la ville). Confirmez l'adresse exacte avec l'organisateur.</p>` : ''}` : ''}</div>
-      <div class="declared">${icon('shield', 16)} Informations déclarées par l'organisateur sous sa responsabilité. La publication sur G-Sports ne constitue pas une certification de sécurité ou de compétence. Vérifiez les conditions d'encadrement avant l'inscription. <a href="#" data-action="report" data-type="listing" data-id="${l.id}">Signaler cette annonce</a></div>
-      ${l.similar.length ? html`<div><h2 style="font-size:1.3rem;margin-top:10px">Activités similaires</h2><div class="grid cards">${l.similar.map(listingCard)}</div></div>` : ''}
+    <div class="doc">
+      ${demo ? html`<p class="notice demo"><b>Exemple fictif.</b> Cette annonce illustre la structure d'une offre ; elle ne correspond à aucune activité réelle.</p>` : ''}
+      <section class="doc-sec"><h2><span>1</span>L'essentiel</h2>
+        <dl class="facts">
+          ${fact('Âge', fmtAge(l.age_min, l.age_max))}${fact('Niveau', l.levels.map((x) => LEVEL_LABELS[x]).join(', '))}
+          ${fact('Débutants', l.beginners ? 'Acceptés' : 'Non')}${fact('Public', GENDER_LABELS[l.gender])}
+          ${fact('Jours', l.days.length ? daysText(l.days) : null)}${fact('Horaires', l.schedule)}
+          ${fact('Durée des séances', l.session_duration)}${fact('Lieu', SETTING_LABELS[l.setting])}
+          ${fact('Places', l.places_status === 'complet' ? 'Complet' : l.places ? `${l.places}${l.places_status === 'limitees' ? ' (limitées)' : ''}` : l.places_status === 'limitees' ? 'Limitées' : null)}
+          ${fact('Début', l.start_date && fmtDate(l.start_date, true))}${fact('Fin', l.end_date && fmtDate(l.end_date, true))}
+        </dl></section>
+      <section class="doc-sec"><h2><span>2</span>Tarifs</h2>
+        <div class="price-line"><b>${p.amount}</b>${p.unit ? html` <span>${p.unit}</span>` : ''}</div>
+        ${l.price_text && (l.price_amount != null || l.is_free) ? html`<p>${l.price_text}</p>` : ''}
+        ${l.formulas.length ? html`<table class="tbl price-tbl"><thead><tr><th>Formule</th><th>Prix</th><th>Détails</th></tr></thead><tbody>
+          ${l.formulas.map((fo) => html`<tr><td>${fo.name}</td><td><b>${fo.price || 'Sur demande'}</b></td><td>${fo.details}</td></tr>`)}</tbody></table>` : ''}
+        ${l.extra_fees ? html`<p><b>Frais supplémentaires :</b> ${l.extra_fees}</p>` : ''}
+        <p class="small muted">Tarifs fixés par l'organisateur et réglés directement auprès de lui.</p></section>
+      <section class="doc-sec"><h2><span>3</span>Inscription</h2>
+        <dl class="facts">${fact('Statut', regLine(l, true).replace(" : voir la section 3", " : voir ci-dessous"))}${fact("Période d'inscription", regPeriod)}${fact('Date limite', l.reg_end && fmtDate(l.reg_end, true))}</dl>
+        ${l.registration_info ? html`<h3>Modalités</h3><p class="prose">${l.registration_info}</p>` : ''}
+        ${l.conditions ? html`<h3>Conditions et documents</h3><p class="prose">${l.conditions}</p>` : ''}
+        ${!l.registration_info && !l.conditions ? html`<p class="muted">L'organisateur n'a pas encore détaillé la procédure : demandez-la avec le bouton « Poser une question ».</p>` : ''}</section>
+      <section class="doc-sec"><h2><span>4</span>Présentation</h2><p class="prose">${l.description}</p>
+        ${l.objectives.length ? html`<h3>Au programme</h3><ol class="num-list">${l.objectives.map((o) => html`<li>${o}</li>`)}</ol>` : ''}
+        ${l.learn ? html`<h3>Ce que l'enfant va apprendre</h3><p class="prose">${l.learn}</p>` : ''}
+        ${photos.length ? html`<div class="gallery">${photos.map((ph) => html`<figure><img src="${ph}" alt="" loading="lazy" data-action="zoom" data-src="${ph}">${l.cover_is_generic ? html`<figcaption>Photo d'illustration (même activité)</figcaption>` : ''}</figure>`)}</div>` : ''}</section>
+      ${isCamp && (l.program || l.included || l.not_included || l.meals || l.lodging || l.transport || l.arrival_time) ? html`<section class="doc-sec"><h2><span>5</span>Organisation du ${l.kind}</h2>
+        <dl class="facts">${fact('Arrivée', l.arrival_time)}${fact('Départ', l.departure_time)}${fact('Durée', l.duration)}${fact('Repas', l.meals)}${fact('Hébergement', l.lodging)}${fact('Transport', l.transport)}</dl>
+        ${l.program ? html`<h3>Programme</h3><p class="prose">${l.program}</p>` : ''}
+        ${l.included ? html`<h3>Inclus dans le prix</h3><p class="prose">${l.included}</p>` : ''}${l.not_included ? html`<h3>Non inclus</h3><p class="prose">${l.not_included}</p>` : ''}</section>` : ''}
+      ${l.equipment || l.outfit || l.supervision || l.safety ? html`<section class="doc-sec"><h2><span>${isCamp ? 6 : 5}</span>À prévoir et encadrement</h2>
+        <dl class="facts wide">${fact('Matériel', l.equipment)}${fact('Tenue', l.outfit)}${fact('Encadrement', l.supervision)}${fact('Sécurité', l.safety)}</dl></section>` : ''}
+      <section class="doc-sec"><h2><span>·</span>Adresse</h2><p>${l.address || ''}${l.district ? (l.address ? ', ' : '') + l.district : ''} ${l.city.name}, ${l.province.name}</p>
+        ${l.lat != null ? html`<div class="map-box" id="lmap"></div>${l.approx_location ? html`<p class="small muted">Position approximative (centre de la ville) : confirmez l'adresse avec l'organisateur.</p>` : ''}` : ''}</section>
+      <p class="declared">Informations déclarées par l'organisateur. Leur publication ne vaut pas certification de sécurité ou de compétence : vérifiez l'encadrement avant l'inscription. <a href="#" data-action="report" data-type="listing" data-id="${l.id}">Signaler cette annonce</a></p>
+      ${l.similar.length ? html`<section class="doc-sec"><h2><span>+</span>Activités similaires</h2><div class="entries">${l.similar.map(listingCard)}</div></section>` : ''}
     </div>
     <aside><div class="contact-card">
-      <div><small class="muted" style="font-weight:700">Tarif</small><div class="price-big">${fmtPrice(l)}</div></div>
-      ${l.reg_end && l.reg_state === 'ouvertes' ? html`<div class="notice ok small">Inscriptions ouvertes jusqu'au <b>${fmtDate(l.reg_end, true)}</b></div>` : ''}
+      <p class="kicker">Tarif</p>
+      <div class="price-big">${p.amount}${p.unit ? html` <span>${p.unit}</span>` : ''}</div>
+      <p class="reg ${l.reg_state}">${regLine(l, true)}</p>
       ${contactBtns}
-      <p class="small muted" style="margin:0">Mise en relation gratuite. Les échanges se font uniquement avec le parent ou le responsable légal.</p>
-      <p class="small muted" style="margin:0">Vue ${l.views} fois · Publiée le ${fmtDate(l.published_at || '')}</p>
+      <p class="small muted">Vos coordonnées ne sont transmises qu'à cet organisateur. Les échanges se font uniquement avec le parent ou le responsable légal.</p>
     </div></aside>
   </div>
-  ${demo ? '' : html`<div class="sticky-cta"><button class="btn btn-primary" data-action="contact" data-type="info">Contacter</button>${wa ? html`<a class="btn btn-wa" href="${wa}" target="_blank" rel="noopener" data-external>${icon('wa', 18)} WhatsApp</a>` : html`<button class="btn btn-navy" data-action="contact" data-type="inscription">S'inscrire</button>`}</div>`}`;
+  ${demo ? '' : html`<div class="sticky-cta"><div><small>${p.amount}${p.unit ? ' ' + p.unit : ''}</small><span>${regLine(l)}</span></div><button class="btn btn-primary" data-action="contact" data-type="inscription">S'inscrire</button></div>`}`;
 });
 let currentContact = null;
 action('zoom', (el) => openModal(html`<img src="${el.dataset.src}" alt="" style="border-radius:14px;width:100%">`, { label: 'Photo' }));
@@ -467,13 +456,14 @@ async function profilePage(ctx) {
   setMeta(`${p.name} – ${p.type_label}`, (p.description || '').slice(0, 155));
   miniMap('pmap', p.lat, p.lng, p.name);
   const wa = p.whatsapp ? `https://wa.me/${p.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour, j'ai trouvé votre profil « ${p.name} » sur G-Sports Gabon.`)}` : null;
-  const yes = (b, l) => (b ? html`<span class="badge soft">✓ ${l}</span>` : '');
+  const yes = (b, l) => (b ? html`<span class="badge soft">${l}</span>` : '');
   return html`
   ${p.verification !== 'approved' ? html`<div class="container" style="margin-top:12px"><div class="notice warn"><b>Aperçu :</b> ce profil est en attente de validation et n'est pas encore public.</div></div>` : ''}
-  <div class="detail-hero">${p.cover ? html`<img class="cover" src="${p.cover}" alt="">` : html`<div class="ph-cover" style="background:linear-gradient(135deg,var(--navy),var(--turq))">${p.is_coach ? '🏅' : '🏟️'}</div>`}
-    <div class="overlay"><div class="container row" style="align-items:flex-end;gap:16px">
-      ${p.logo ? html`<img class="avatar ${p.is_coach ? 'round' : ''}" src="${p.logo}" alt="" style="width:84px;height:84px;border:3px solid #fff">` : html`<div class="avatar ${p.is_coach ? 'round' : ''}" style="width:84px;height:84px;border:3px solid #fff">${initials(p.name)}</div>`}
-      <div>${p.is_demo ? html`<span class="badge demo">Exemple fictif</span>` : ''}<h1 style="margin:6px 0 2px">${p.name}</h1><div style="font-weight:600">${p.type_label}${p.city ? ` · ${p.city.name}, ${p.province.name}` : ''}</div></div></div></div></div>
+  <header class="doc-head"><div class="container doc-head-row">
+    ${p.logo ? html`<img class="avatar ${p.is_coach ? 'round' : ''}" src="${p.logo}" alt="">` : html`<div class="avatar ${p.is_coach ? 'round' : ''}">${initials(p.name)}</div>`}
+    <div><p class="crumbs"><a href="/">Accueil</a> / <a href="/${p.is_coach ? 'coachs' : 'clubs'}">${p.is_coach ? 'Coachs' : 'Clubs & salles'}</a></p>
+      <p class="kicker">${p.type_label}${p.is_demo ? ' — exemple fictif' : ''}</p><h1>${p.name}</h1>
+      <p class="byline">${p.specialty || p.main_activity || ''}${p.city ? ` · ${p.city.name}, ${p.province.name}` : ''}</p></div></div></header>
   <div class="container detail"><div class="stack">
     ${p.is_demo ? html`<div class="notice demo">Ce profil est un <b>exemple fictif</b> destiné à illustrer la présentation d'une structure.</div>` : ''}
     <div class="row" style="gap:6px">${p.verification === 'approved' && !p.is_demo ? html`<span class="badge ok" title="Le compte a été examiné par la modération G-Sports. Ce n'est pas une certification de sécurité ou de compétence.">Compte validé par la modération</span>` : ''}
@@ -594,18 +584,18 @@ addRoute('/favoris', async () => {
   return html`<div class="page-head"><div class="container"><h1>Mes favoris</h1><p>${state.me ? 'Retrouvez les annonces enregistrées sur tous vos appareils.' : 'Vos favoris sont enregistrés sur cet appareil. Créez un compte pour les retrouver partout et recevoir des alertes.'}</p></div></div>
   <div class="container" style="padding:20px 16px 40px">${items.length ? html`<div class="grid cards">${items.map(listingCard)}</div>`
     : html`<div class="empty"><div class="ico">❤️</div><h3>Aucun favori pour le moment</h3><p>Touchez le cœur sur une annonce pour l'enregistrer. Les annonces expirées disparaissent automatiquement.</p><a class="btn btn-primary" href="/activites">Explorer les activités</a></div>`}
-  ${!state.me ? html`<p class="center" style="margin-top:18px"><a href="/inscription">Créer un compte parent gratuit</a></p>` : ''}</div>`;
+  ${!state.me ? html`<p class="center" style="margin-top:18px"><a href="/inscription">Créer un compte parent</a></p>` : ''}</div>`;
 });
 
 // ================= PUBLIER =================
 addRoute('/publier', () => {
   if (state.me?.role === 'pro') { navigate('/espace-pro/annonce/nouvelle', { replace: true }); return; }
-  setMeta('Publier une annonce gratuitement');
-  return html`<div class="page-head has-img"><div class="bg" style="background-image:url('${photo('basket-ciel', true)}')"></div><div class="container"><h1>Publier une annonce, c'est gratuit</h1>
+  setMeta('Publier une annonce');
+  return html`<div class="page-head has-img"><div class="bg" style="background-image:url('${photo('basket-ciel', true)}')"></div><div class="container"><h1>Publier une annonce</h1>
     <p>Activités régulières, inscriptions de saison, stages, camps, portes ouvertes, tournois, séances d'essai : publiez en quelques minutes depuis votre téléphone.</p></div></div>
   <div class="container" style="padding:24px 16px 40px"><div class="grid two">
     <div class="card pad"><h2 style="font-size:1.3rem">Vous êtes un professionnel ?</h2><p>Club, association, gymnase, salle de sport, coach, éducateur, centre de loisirs ou organisateur de camps.</p>
-      <ul><li>Aucun abonnement, aucune commission, aucune mise en avant payante</li><li>Annonces illimitées (dans la limite de 100 actives)</li><li>Demandes des parents reçues directement</li></ul>
+      <ul><li>Saison, stages, camps, portes ouvertes, séances d'essai : jusqu'à 100 annonces actives</li><li>Tarifs, formules et modalités d'inscription présentés clairement aux parents</li><li>Demandes des parents reçues directement</li></ul>
       <div class="row">${state.me?.role === 'parent' ? html`<p class="notice warn">Vous êtes connecté avec un compte parent. Pour publier, créez un compte professionnel distinct (autre email).</p>` : ''}
       <a class="btn btn-primary" href="/inscription-pro">Créer mon compte professionnel</a>${!state.me ? html`<a class="btn btn-ghost" href="/connexion?retour=/publier">J'ai déjà un compte</a>` : ''}</div></div>
     <div class="card pad"><h2 style="font-size:1.3rem">Comment ça se passe ?</h2><ol><li>Créez votre compte et votre profil (2 minutes).</li><li>La modération vérifie votre compte.</li><li>Publiez vos annonces, éventuellement à partir d'un <a href="/modeles">modèle</a>.</li><li>Les annonces expirent automatiquement à leur date de fin : renouvelez-les en un clic.</li></ol></div>
@@ -625,15 +615,15 @@ addRoute('/modeles', async () => {
 // ================= PAGES D'INFORMATION =================
 const page = (title, body, sub) => html`<div class="page-head"><div class="container"><h1>${title}</h1>${sub ? html`<p>${sub}</p>` : ''}</div></div><div class="content">${body}</div>`;
 addRoute('/a-propos', () => { setMeta('À propos'); return page('À propos de G-Sports Gabon', html`
-  <p><b>G-Sports</b> est une plateforme nationale, entièrement gratuite, qui répertorie les activités sportives, artistiques, éducatives, de loisirs et extrascolaires accessibles aux enfants et aux jeunes à partir de 5 ans, partout au Gabon.</p>
+  <p><b>G-Sports</b> est une plateforme nationale qui répertorie les activités sportives, artistiques, éducatives, de loisirs et extrascolaires accessibles aux enfants et aux jeunes à partir de 5 ans, partout au Gabon.</p>
   <h2>Notre mission</h2><p>Permettre à chaque parent de trouver facilement une activité adaptée à son enfant — selon sa ville, son âge, ses envies, son budget et ses disponibilités — et aider les clubs, coachs et associations à gagner en visibilité.</p>
-  <h2>Totalement gratuit</h2><ul><li>Gratuit pour les parents, les enfants et les jeunes</li><li>Gratuit pour les clubs, coachs et structures</li><li>Gratuit pour publier, consulter et contacter</li><li>Aucun abonnement, aucun paiement intégré, aucune commission, aucune mise en avant payante</li></ul>
+  <h2>Ce que vous y trouvez</h2><ul><li>Les tarifs, formules et frais annexes de chaque activité</li><li>Les périodes, dates limites et modalités d'inscription</li><li>Les jours, horaires, lieux et conditions d'encadrement</li><li>Un contact direct avec le club ou le coach</li></ul><p>G-Sports ne vend rien et ne gère aucun paiement : les inscriptions et les règlements se font directement auprès des organisateurs.</p>
   <h2>Tout le Gabon</h2><p>Les 9 provinces — Estuaire, Haut-Ogooué, Moyen-Ogooué, Ngounié, Nyanga, Ogooué-Ivindo, Ogooué-Lolo, Ogooué-Maritime et Woleu-Ntem — sont couvertes par la recherche. Lorsqu'aucune activité n'est encore référencée dans une ville, nous l'affichons honnêtement : aucune fausse annonce n'est créée.</p>
   <p><a class="btn btn-primary" href="/activites">Trouver une activité</a></p>`, 'À chaque jeune son activité. À chaque talent son terrain.'); });
 addRoute('/comment-ca-marche', () => { setMeta('Comment ça marche'); return page('Comment fonctionne G-Sports ?', html`
   <h2>Pour les parents</h2><ol><li>Ouvrez G-Sports (pas besoin de compte pour consulter).</li><li>Choisissez votre ville.</li><li>Indiquez l'âge de votre enfant : seules les activités adaptées s'affichent.</li><li>Sélectionnez une activité ou explorez les catégories.</li><li>Comparez les annonces : horaires, tarifs, encadrement, dates d'inscription.</li><li>Contactez directement le club ou le coach : appel, WhatsApp ou message.</li><li>Organisez le rendez-vous ou l'inscription directement avec lui.</li></ol>
-  <p>Avec un compte parent (gratuit), vous pouvez aussi enregistrer vos favoris, créer des profils enfants (prénom et âge uniquement), recevoir des alertes et suivre vos demandes.</p>
-  <h2>Pour les professionnels</h2><ol><li>Créez gratuitement votre compte (club, association, gymnase, salle, coach, organisateur…).</li><li>Complétez votre profil : disciplines, âges, horaires, installations, tarifs.</li><li>Après validation par la modération, publiez vos annonces : activités, stages, camps, portes ouvertes…</li><li>Recevez et gérez les demandes des parents depuis votre tableau de bord.</li></ol>
+  <p>Avec un compte parent, vous pouvez aussi enregistrer vos favoris, créer des profils enfants (prénom et âge uniquement), recevoir des alertes et suivre vos demandes.</p>
+  <h2>Pour les professionnels</h2><ol><li>Créez votre compte (club, association, gymnase, salle, coach, organisateur…).</li><li>Complétez votre profil : disciplines, âges, horaires, installations, tarifs.</li><li>Après validation par la modération, publiez vos annonces : activités, stages, camps, portes ouvertes…</li><li>Recevez et gérez les demandes des parents depuis votre tableau de bord.</li></ol>
   <h2>Mise en relation, pas de paiement</h2><p>G-Sports ne gère aucun paiement : les tarifs sont fixés librement par les professionnels et réglés directement auprès d'eux.</p>`); });
 addRoute('/securite', () => { setMeta('Sécurité des jeunes'); return page('Sécurité et protection des mineurs', html`
   <p>La sécurité des enfants est notre priorité absolue. G-Sports a été conçu pour limiter au strict nécessaire les informations les concernant.</p>
@@ -646,9 +636,9 @@ addRoute('/securite', () => { setMeta('Sécurité des jeunes'); return page('Sé
   <h2>Conseils aux parents</h2><ul><li>Rencontrez l'encadrant et visitez le lieu avant l'inscription.</li><li>Demandez les qualifications et l'assurance de la structure.</li><li>Vérifiez les conditions de sécurité (piscine : maître-nageur, arts martiaux : encadrement adapté…).</li><li>Signalez tout comportement inapproprié.</li></ul>
   <p><a class="btn btn-danger" href="/signalement">Signaler un contenu</a></p>`); });
 addRoute('/faq', () => { setMeta('FAQ'); const q = (t, a) => html`<details><summary>${t}</summary><p>${a}</p></details>`; return page('Questions fréquentes', html`<div class="faq">
-  ${q('G-Sports est-il vraiment gratuit ?', "Oui. Consulter, contacter, créer un compte, publier une annonce : tout est gratuit, sans abonnement, sans commission et sans mise en avant payante.")}
+  ${q('Faut-il payer pour utiliser G-Sports ?', "Non. Consulter, contacter un organisateur, créer un compte ou publier une annonce ne coûte rien. Seules les activités elles-mêmes sont payantes, aux tarifs fixés par chaque organisateur.")}
   ${q('Dois-je créer un compte pour chercher une activité ?', "Non. Le compte parent est facultatif : il sert à enregistrer vos favoris, vos alertes et à suivre vos demandes.")}
-  ${q('Comment inscrire mon enfant ?', "Contactez directement le professionnel depuis l'annonce (appel, WhatsApp ou message). L'inscription et le paiement éventuel se font directement avec lui.")}
+  ${q('Comment inscrire mon enfant ?', "Chaque annonce indique la période et la date limite d'inscription, les modalités et les documents demandés. Utilisez « Demander une inscription », ou appelez / écrivez sur WhatsApp à l'organisateur : l'inscription et le règlement se font directement avec lui.")}
   ${q("Il n'y a aucune activité dans ma ville, pourquoi ?", "G-Sports n'affiche que de vraies annonces publiées par des professionnels. Si votre ville n'est pas encore couverte, invitez les clubs et coachs que vous connaissez à s'inscrire.")}
   ${q('Que signifie « Exemple fictif » ?', "Certaines annonces servent uniquement à illustrer la présentation d'une offre. Elles ne correspondent à aucune activité réelle et ne peuvent pas être contactées.")}
   ${q('Les clubs et coachs sont-ils vérifiés ?', "La modération examine chaque compte professionnel avant publication. Les informations (diplômes, encadrement, tarifs) restent déclarées par le professionnel : ce n'est pas une certification. Vérifiez-les lors de votre rencontre.")}

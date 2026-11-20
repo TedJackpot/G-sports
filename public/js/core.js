@@ -216,7 +216,7 @@ export function fmtDate(d, long = false) {
 }
 export function fmtDateTime(d) { if (!d) return ''; const x = new Date(d.replace(' ', 'T') + (d.includes('Z') ? '' : 'Z')); return x.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }); }
 export const todayStr = () => new Date().toISOString().slice(0, 10);
-const PERIODS = { seance: '/ séance', semaine: '/ semaine', mois: '/ mois', trimestre: '/ trimestre', annee: '/ an', stage: '/ stage', total: '' };
+export const PERIODS = { seance: '/ séance', semaine: '/ semaine', mois: '/ mois', trimestre: '/ trimestre', annee: '/ an', stage: '/ stage', total: '' };
 export function fmtPrice(l, short = false) {
   if (l.is_free) return 'Gratuit';
   if (l.price_amount != null) return `${Number(l.price_amount).toLocaleString('fr-FR')} FCFA ${PERIODS[l.price_period] || ''}`.trim();
@@ -265,37 +265,55 @@ export function badgeList(l, max = 3) {
   const b = [...(l.is_demo ? [{ k: 'demo', t: 'Exemple fictif' }] : []), ...l.badges].slice(0, max);
   return b.map((x) => html`<span class="badge ${x.k}">${x.t}</span>`);
 }
+// Statut d'inscription lisible par un parent
+export function regLine(l, onDetail = false) {
+  if (l.reg_state === 'complet') return 'Complet';
+  if (l.reg_state === 'ouvertes') return l.reg_end ? `Inscriptions jusqu'au ${fmtDate(l.reg_end)}` : 'Inscriptions ouvertes';
+  if (l.reg_state === 'bientot') return l.reg_start ? `Inscriptions dès le ${fmtDate(l.reg_start)}` : (l.start_date ? `Démarre le ${fmtDate(l.start_date)}` : 'Bientôt');
+  if (l.reg_state === 'closes') return 'Inscriptions closes';
+  return onDetail ? "Modalités d'inscription : voir la section 3" : "Modalités d'inscription sur la fiche";
+}
+export function priceParts(l) {
+  if (l.is_free) return { amount: 'Gratuit', unit: '' };
+  if (l.price_amount != null) return { amount: `${Number(l.price_amount).toLocaleString('fr-FR')} FCFA`, unit: PERIODS[l.price_period] || '' };
+  return { amount: 'Sur demande', unit: '' };
+}
+const DAY_SHORT = { lun: 'lun.', mar: 'mar.', mer: 'mer.', jeu: 'jeu.', ven: 'ven.', sam: 'sam.', dim: 'dim.' };
+export const daysText = (days) => days.map((d) => DAY_SHORT[d]).join(' · ');
+const smallPhoto = (u) => u.replace(/(\/img\/photos\/[\w-]+)\.jpg$/, '$1-sm.jpg');
+// Fiche d'annonce au format « programme » : l'information d'abord, la photo en petit et seulement si elle correspond
 export function listingCard(l) {
-  const g = l.group;
-  return html`<a class="l-card fade-in" href="${l.url}">
-    <div class="media">
-      ${l.cover ? html`<img src="${l.cover.replace(/(\/img\/photos\/[\w-]+)\.jpg$/, '$1-sm.jpg')}" alt="" loading="lazy" decoding="async">` : html`<div class="ph" style="background:${g?.color || '#16B8C5'}">${g?.icon || '⭐'}</div>`}
-      <div class="tags">${badgeList(l)}</div>
-      <div class="media-foot"><span class="pill ${l.is_free ? 'free' : ''}">${fmtPrice(l, true)}</span><span class="pill glass">${icon('age', 14)} ${fmtAge(l.age_min, l.age_max)}</span></div>
+  const p = priceParts(l);
+  const facts = [['Âge', fmtAge(l.age_min, l.age_max)]];
+  if (l.days.length) facts.push(['Jours', daysText(l.days)]);
+  else if (l.start_date) facts.push(['Dates', `${fmtDate(l.start_date)}${l.end_date && l.end_date !== l.start_date ? ' → ' + fmtDate(l.end_date) : ''}`]);
+  facts.push(['Niveau', l.levels.map((x) => LEVEL_LABELS[x]).join(', ')]);
+  return html`<a class="entry fade-in" href="${l.url}">
+    <div class="entry-main">
+      <div class="entry-kicker"><span>${l.cat_name || l.kind_label}</span><span class="sep">/</span><span>${l.kind_label}</span>${l.is_demo ? html`<span class="badge demo">Exemple fictif</span>` : ''}${l.badges.filter((b) => ['complet', 'limitees', 'nouveau'].includes(b.k)).map((b) => html`<span class="badge ${b.k}">${b.t}</span>`)}</div>
+      <h3 class="entry-title">${l.title}</h3>
+      <div class="entry-org">${l.org.name} — ${l.city.name}${l.district ? ', ' + l.district : ''}${l.distance_km != null ? ` (${l.distance_km} km)` : ''}</div>
+      <dl class="entry-facts">${facts.map(([k, v]) => html`<div><dt>${k}</dt><dd>${v}</dd></div>`)}</dl>
     </div>
-    <div class="fav">${favBtn(l.id)}</div>
-    <div class="body">
-      <span class="kind-tag" style="--c:${g?.color || '#16B8C5'}">${g?.icon || ''} ${l.kind_label}${l.cat_name ? ' · ' + l.cat_name : ''}</span>
-      <h3>${l.title}</h3>
-      <div class="meta">
-        <span>${icon('pin', 15)} ${l.city.name}${l.district ? ', ' + l.district : ''}${l.distance_km != null ? ` · ${l.distance_km} km` : ''}</span>
-        ${l.start_date ? html`<span>${icon('cal', 15)} ${fmtDate(l.start_date)}${l.end_date && l.end_date !== l.start_date ? ' → ' + fmtDate(l.end_date) : ''}</span>`
-          : l.reg_end && l.reg_state === 'ouvertes' ? html`<span>${icon('clock', 15)} Inscriptions jusqu'au ${fmtDate(l.reg_end)}</span>`
-          : html`<span>${icon('check', 15)} ${l.levels.map((x) => LEVEL_LABELS[x]).join(' · ')}</span>`}
-      </div>
-      <div class="foot"><span class="org"><span class="mini-av">${initials(l.org.name)}</span><span class="org-name">${l.org.name}</span></span><span class="go" aria-hidden="true">→</span></div>
-    </div></a>`;
+    ${l.cover ? html`<figure class="entry-thumb"><img src="${smallPhoto(l.cover)}" alt="" loading="lazy" decoding="async">${l.cover_is_generic ? html`<figcaption>Illustration</figcaption>` : ''}</figure>` : ''}
+    <div class="entry-side">
+      <div class="entry-price"><small>Tarif</small><b>${p.amount}</b>${p.unit ? html`<span>${p.unit}</span>` : ''}</div>
+      <div class="entry-reg ${l.reg_state}">${regLine(l)}</div>
+    </div>
+    <div class="entry-fav">${favBtn(l.id)}</div>
+  </a>`;
 }
 export function profileCard(p) {
-  return html`<a class="p-card fade-in" href="${p.url}">
-    ${p.logo || p.cover ? html`<img class="avatar ${p.is_coach ? 'round' : ''}" src="${p.logo || p.cover}" alt="" loading="lazy">` : html`<div class="avatar ${p.is_coach ? 'round' : ''}">${initials(p.name)}</div>`}
-    <div style="min-width:0">
-      ${p.is_demo ? html`<span class="badge demo" style="margin-bottom:4px">Exemple fictif</span>` : ''}
-      <h3>${p.name}</h3>
-      <div class="small muted">${p.type_label}${p.city ? ' · ' + p.city.name : ''}</div>
-      <div class="small" style="margin-top:4px">${p.specialty || p.main_activity || p.disciplines || ''}</div>
-      ${p.listing_count ? html`<span class="count-pill" style="margin-top:6px;display:inline-block">${p.listing_count} annonce${p.listing_count > 1 ? 's' : ''}</span>` : ''}
-    </div></a>`;
+  return html`<a class="entry entry-profile fade-in" href="${p.url}">
+    <div class="entry-main">
+      <div class="entry-kicker"><span>${p.type_label}</span>${p.is_demo ? html`<span class="badge demo">Exemple fictif</span>` : ''}</div>
+      <h3 class="entry-title">${p.name}</h3>
+      <div class="entry-org">${p.specialty || p.main_activity || p.disciplines || ''}${p.city ? ' — ' + p.city.name : ''}</div>
+      ${p.age_min ? html`<dl class="entry-facts"><div><dt>Âges</dt><dd>${fmtAge(p.age_min, p.age_max || 99)}</dd></div></dl>` : ''}
+    </div>
+    ${p.logo ? html`<figure class="entry-thumb logo"><img src="${p.logo}" alt="" loading="lazy"></figure>` : ''}
+    <div class="entry-side"><div class="entry-reg">${p.listing_count ? `${p.listing_count} annonce${p.listing_count > 1 ? 's' : ''} en cours` : 'Voir le profil'}</div></div>
+  </a>`;
 }
 export function emptyCity(cityName, { what } = {}) {
   return html`<div class="empty"><div class="ico">🔎</div>
@@ -307,7 +325,7 @@ export function emptyCity(cityName, { what } = {}) {
     </div></div>`;
 }
 action('invite', async () => {
-  const text = "Référencez gratuitement vos activités pour les jeunes sur G-Sports Gabon : clubs, coachs, associations, stages et camps.";
+  const text = "Référencez vos activités pour les jeunes sur G-Sports Gabon : les parents y comparent tarifs, horaires et modalités d'inscription.";
   const url = location.origin + '/inscription-pro';
   if (navigator.share) { try { await navigator.share({ title: 'G-Sports Gabon', text, url }); } catch { /* annulé */ } }
   else openModal(html`<h3>Inviter un club ou un coach</h3><p class="muted">Partagez ce lien avec la structure :</p>
@@ -333,7 +351,7 @@ export function provinceSelect(name, selected, { placeholder = 'Toutes les provi
 }
 export function categorySelect(name, selected, { placeholder = 'Toutes les activités', byId = false, required = false, groupsSelectable = true } = {}) {
   return html`<select class="input" name="${name}" ${required ? 'required' : ''} aria-label="Activité"><option value="">${placeholder}</option>
-    ${(state.meta?.groups || []).map((g) => html`<optgroup label="${g.icon} ${g.name}">
+    ${(state.meta?.groups || []).map((g) => html`<optgroup label="${g.name}">
       ${groupsSelectable && !byId ? html`<option value="g:${g.slug}" ${selected === 'g:' + g.slug ? 'selected' : ''}>Tout : ${g.name}</option>` : ''}
       ${g.categories.map((c) => { const v = byId ? c.id : c.slug; return html`<option value="${v}" ${String(v) === String(selected ?? '') ? 'selected' : ''}>${c.name}</option>`; })}
     </optgroup>`)}</select>`;
@@ -406,10 +424,15 @@ export function spaceLink() {
   if (!state.me) return null;
   return state.me.role === 'admin' ? '/admin' : state.me.role === 'pro' ? '/espace-pro' : '/espace-parent';
 }
+export function season() {
+  const d = new Date(); const y = d.getFullYear();
+  return d.getMonth() >= 7 ? `${y}–${y + 1}` : `${y - 1}–${y}`;
+}
 export function renderLayout() {
   const me = state.me;
-  $('#header').innerHTML = String(html`<div class="container bar">
-    <a class="logo" href="/" aria-label="G-Sports Gabon, accueil"><img src="/img/icons/icon-192.png" alt="" width="36" height="36"><span>G-Sports<small>Gabon</small></span></a>
+  $('#header').innerHTML = String(html`<div class="topline"><div class="container"><span>Le guide des activités des 5–18 ans au Gabon</span><span>Saison ${season()}</span></div></div>
+  <div class="container bar">
+    <a class="logo" href="/" aria-label="G-Sports Gabon, accueil"><span class="wordmark">G-Sports</span><small>Gabon</small></a>
     <nav class="main-nav" aria-label="Navigation principale">${NAV.map(([h, l]) => html`<a href="${h}" class="${isActive(h) ? 'active' : ''}">${l}</a>`)}</nav>
     <div class="header-actions">
       <a class="icon-btn hide-sm" href="/favoris" aria-label="Mes favoris">${icon('heart')}</a>
@@ -426,15 +449,14 @@ export function renderLayout() {
     <a href="${me ? spaceLink() : '/connexion'}" class="${me && isActive(spaceLink()) ? 'active' : ''}">${icon('user')}${me ? 'Mon espace' : 'Compte'}</a>`);
   $('#footer').innerHTML = String(html`<div class="container">
     <div class="cols">
-      <div><a class="logo" href="/" style="color:#fff"><img src="/img/icons/icon-192.png" alt="" width="36" height="36"><span>G-Sports<small style="color:var(--sun)">Gabon</small></span></a>
-        <p style="margin-top:12px">${state.meta?.home?.slogan || 'À chaque jeune son activité. À chaque talent son terrain.'}</p>
-        <span class="free-tag">✓ 100 % gratuit · sans abonnement · sans commission</span>
+      <div><a class="logo" href="/"><span class="wordmark">G-Sports</span><small>Gabon</small></a>
+        <p class="footer-slogan">${state.meta?.home?.slogan || 'À chaque jeune son activité. À chaque talent son terrain.'}</p>
         ${installAvailable() ? html`<p style="margin-top:14px"><button class="btn btn-primary btn-sm" data-action="install">${icon('download', 16)} Installer l'application</button></p>` : ''}</div>
       <div><h4>Explorer</h4><ul><li><a href="/activites">Toutes les activités</a></li><li><a href="/sports">Sports</a></li><li><a href="/extrascolaire">Extrascolaire</a></li><li><a href="/stages">Stages</a></li><li><a href="/camps">Camps de vacances</a></li><li><a href="/calendrier">Calendrier</a></li><li><a href="/carte">Carte du Gabon</a></li></ul></div>
       <div><h4>Professionnels</h4><ul><li><a href="/inscription-pro">Référencer mon activité</a></li><li><a href="/publier">Publier une annonce</a></li><li><a href="/modeles">Modèles d'annonces</a></li><li><a href="/clubs">Clubs & salles</a></li><li><a href="/coachs">Coachs</a></li></ul></div>
       <div><h4>G-Sports</h4><ul><li><a href="/a-propos">À propos</a></li><li><a href="/comment-ca-marche">Comment ça marche</a></li><li><a href="/securite">Sécurité des jeunes</a></li><li><a href="/faq">FAQ</a></li><li><a href="/contact">Contact</a></li><li><a href="/signalement">Signaler un contenu</a></li></ul></div>
     </div>
-    <div class="bottom"><span>© ${new Date().getFullYear()} G-Sports Gabon – Plateforme gratuite de mise en relation</span>
+    <div class="bottom"><span>© ${new Date().getFullYear()} G-Sports Gabon — mise en relation entre familles et professionnels</span>
       <span><a href="/conditions">Conditions d'utilisation</a> · <a href="/confidentialite">Confidentialité</a></span></div></div>`);
 }
 function updateNav() {
@@ -445,16 +467,16 @@ action('drawer', () => {
   const me = state.me;
   const d = $('#drawer');
   d.innerHTML = String(html`<div class="scrim" data-action="close-drawer"></div><div class="panel" role="dialog" aria-label="Menu">
-    <div class="row between" style="margin-bottom:8px"><span class="logo"><img src="/img/icons/icon-192.png" alt="" width="32" height="32">G-Sports</span>
+    <div class="row between" style="margin-bottom:8px"><span class="logo"><span class="wordmark">G-Sports</span><small>Gabon</small></span>
       <button class="icon-btn" data-action="close-drawer" aria-label="Fermer le menu">${icon('close')}</button></div>
-    ${NAV.map(([h, l, i]) => html`<a class="nav ${isActive(h) ? 'active' : ''}" href="${h}">${icon(i)} ${l}</a>`)}
-    <a class="nav" href="/calendrier">${icon('cal')} Calendrier</a><a class="nav" href="/carte">${icon('map')} Carte du Gabon</a>
-    <a class="nav" href="/favoris">${icon('heart')} Mes favoris</a>
+    ${NAV.map(([h, l]) => html`<a class="nav ${isActive(h) ? 'active' : ''}" href="${h}">${l}</a>`)}
+    <a class="nav" href="/calendrier">Calendrier des inscriptions</a><a class="nav" href="/carte">Carte du Gabon</a>
+    <a class="nav" href="/favoris">Mes favoris</a>
     <hr style="border:0;border-top:1px solid var(--line);width:100%">
     ${me ? html`<a class="nav" href="${spaceLink()}">${icon('user')} Mon espace (${me.name})</a><button class="btn btn-ghost" data-action="logout">Se déconnecter</button>`
       : html`<a class="btn btn-primary" href="/inscription">Créer un compte parent</a><a class="btn btn-ghost" href="/connexion">Se connecter</a><a class="btn btn-navy" href="/inscription-pro">Référencer mon activité</a>`}
     ${installAvailable() ? html`<button class="btn btn-turq" data-action="install" style="margin-top:8px">${icon('download', 18)} Installer l'application</button>` : ''}
-    <p class="small muted" style="margin-top:auto;padding-top:16px">G-Sports est entièrement gratuit pour les familles et les professionnels.</p></div>`);
+  </div>`);
   d.classList.add('open'); d.setAttribute('aria-hidden', 'false');
 });
 export function closeDrawer() { const d = $('#drawer'); if (d) { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); d.innerHTML = ''; } }

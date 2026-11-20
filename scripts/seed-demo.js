@@ -54,7 +54,7 @@ async function main() {
   const p2 = await demoProfile('Exemple – Dojo karaté', 'club', 'Oyem', 'Karaté');
   await demoListing(p2, {
     title: 'Karaté enfants', category_id: (await cat('Karaté')), activity: 'Karaté', city_id: (await city('Oyem')), age_min: 5, age_max: 14, setting: 'indoor',
-    cover: '/img/photos/arts-martiaux-natation.jpg', photos: JSON.stringify(['/img/photos/arts-martiaux-natation.jpg']),
+
     description: "EXEMPLE FICTIF – Modèle d'annonce pour un cours de karaté enfants, débutants acceptés. Discipline, coordination, respect et concentration. Tarifs et inscriptions à renseigner.",
     objectives: JSON.stringify(['Discipline', 'Coordination', 'Respect', 'Concentration', 'Technique', 'Condition physique']),
   });
@@ -62,7 +62,7 @@ async function main() {
   await demoListing(p3, {
     kind: 'camp', title: 'Camp multisport vacances', category_id: (await cat('Camps de vacances')), activity: 'Camp multisport', city_id: (await city('Port-Gentil')),
     age_min: 7, age_max: 15, duration: '5 jours', holidays: 1, setting: 'outdoor', cover: '/img/photos/multisport.jpg',
-    photos: JSON.stringify(['/img/photos/multisport.jpg', '/img/photos/basket-ciel.jpg']),
+    photos: JSON.stringify(['/img/photos/multisport.jpg']),
     description: "EXEMPLE FICTIF – Modèle d'annonce de camp multisport de 5 jours pendant les vacances. Dates, prix, lieu et contact à renseigner par l'organisateur.",
     objectives: JSON.stringify(['Football', 'Basketball', 'Jeux collectifs', 'Course', 'Initiation', 'Activités de groupe']),
     program: 'Jour 1 : accueil et jeux collectifs\nJour 2 : football\nJour 3 : basketball\nJour 4 : course et relais\nJour 5 : mini-tournoi et remise des diplômes',
