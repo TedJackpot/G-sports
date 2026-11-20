@@ -45,41 +45,70 @@ async function refreshFinder() {
 action('pick-fam', (el) => { finder.what = finder.what === el.dataset.v ? '' : el.dataset.v; refreshFinder(); });
 action('pick-age', (el) => { finder.age = finder.age === el.dataset.v ? '' : el.dataset.v; refreshFinder(); });
 action('finder-go', () => navigate(finderUrl()));
+action('go-age', (el) => navigate('/activites?age=t:' + el.dataset.v));
 document.addEventListener('change', (e) => { if (e.target.id === 'finder-city') { finder.city = e.target.value; if (finder.city) lsSet('gs_city', finder.city); refreshFinder(); } });
 
 addRoute('/', async () => {
   setMeta(null, 'Trouvez une activité sportive, artistique ou éducative pour votre enfant partout au Gabon : tarifs, horaires, modalités d\'inscription.');
-  const home = await api('/api/home');
+  const [home, mapData] = await Promise.all([api('/api/home'), api('/api/map').catch(() => ({ cities: [] }))]);
   const m = state.meta;
   const h = m.home || {};
+  // Nombre réel d'annonces par famille (pastilles des cartes)
+  const groupCounts = {};
+  for (const c of mapData.cities) for (const g of c.groups) groupCounts[g.slug] = (groupCounts[g.slug] || 0) + g.n;
+  const countBadge = (slug) => (groupCounts[slug] ? html`<span class="count-badge" title="Annonces en cours">${groupCounts[slug]}</span>` : '');
   const hasDemo = [...home.newest, ...home.popular].some((l) => l.is_demo);
   const prefCity = state.me ? (state.me.preferred_cities?.[0] || state.me.city_id) : lsGet('gs_city', null);
   const prefCityObj = prefCity ? m.cities.find((c) => c.id === Number(prefCity) || c.slug === prefCity) : null;
   finder.what = ''; finder.age = ''; finder.city = prefCityObj?.slug || '';
   const clubs = prefCityObj ? [...home.clubs.filter((c) => c.city?.slug === prefCityObj.slug), ...home.clubs.filter((c) => c.city?.slug !== prefCityObj.slug)] : home.clubs;
   const ticker = [...home.open, ...home.camps].slice(0, 12);
-  onMount(refreshFinder);
   return html`
-  <section class="finder"><div class="container">
-    <div class="finder-top">
-      <div class="finder-intro">
-        <p class="glow-tags"><span style="--c:#18A058">Sport</span><span style="--c:#E83E8C">Danse</span><span style="--c:#7B4DFF">Culture</span><span style="--c:#0FA3B1">Sciences</span><span style="--c:#3E8E2F">Nature</span></p>
-        <h1>${h.heroTitle || "Trouvez l'activité qui fera grandir votre enfant."}</h1>
-        <p>${h.heroSubtitle || 'Clubs, coachs, stages et activités extrascolaires partout au Gabon.'} Tarifs, horaires et modalités d'inscription, puis contact direct avec l'encadrant.</p>
+  <section class="bento-hero"><div class="container">
+    <div class="bento">
+      <a class="bcard b-age" href="/activites">
+        <h2 class="btitle">Programmes par âge</h2>
+        <div class="bphoto"><img src="${photo('basket-joie')}" alt="Enfants souriants courant avec des ballons de basket">
+          <div class="age-badges" role="group" aria-label="Choisir un âge">${Object.entries(AGE_GROUP_LABELS).slice(0, 5).map(([k, l], i) => html`<span class="age-badge c${i % 3}" data-action="go-age" data-v="${k}">${l.replace(' ans', '')}</span>`)}</div></div>
+      </a>
+      <div class="bcenter">
+        <span class="wordmark xl"><b>G</b>-Sports</span>
+        <p class="tagline">Activités sportives et culturelles<br>pour les jeunes, partout au Gabon</p>
+        <form class="mini-search" data-form="hero-search" role="search">
+          <input name="q" list="dl-acts" placeholder="Football, danse, natation…" aria-label="Activité recherchée" autocomplete="off">
+          ${citySelect('city', prefCityObj?.slug, { placeholder: 'Ville', cls: '' })}
+          <button class="btn btn-teal" type="submit">Trouver</button>
+          <datalist id="dl-acts">${m.groups.flatMap((g) => [html`<option value="${g.name}">`, ...g.categories.map((c) => html`<option value="${c.name}">`)])}</datalist>
+        </form>
       </div>
-      <div class="mosaic" aria-hidden="true">${[['basket-joie', '#FF7A1A'], ['arts-martiaux', '#E5383B'], ['natation-initiation', '#1668E3'], ['football-jonglage', '#18A058'], ['exploration-nature', '#3E8E2F'], ['basket-filles', '#F5A300']].map(([p, c]) => html`<span style="--c:${c}"><img src="${photo(p, true)}" alt="" loading="lazy"></span>`)}</div>
+      <a class="bcard b-team" href="/activites?what=g:sports-collectifs">
+        <h2 class="btitle">Sports d'équipe</h2>
+        <div class="bphoto"><img src="${photo('football-entrainement')}" alt="Jeunes footballeurs à l'entraînement">${countBadge('sports-collectifs')}</div>
+      </a>
+      <a class="bcard b-indiv" href="/activites?what=g:arts-martiaux">
+        <h2 class="btitle">Arts martiaux</h2>
+        <div class="bphoto"><img src="${photo('arts-martiaux')}" alt="Enfants en boxe éducative">${countBadge('arts-martiaux')}</div>
+      </a>
+      <a class="bcard b-camp" href="/stages">
+        <h2 class="btitle">Stages vacances</h2>
+        <div class="bphoto"><img src="${photo('basket-ciel')}" alt="Enfants lançant des ballons vers le panier pendant un stage">${home.camps.length ? html`<span class="count-badge">${home.camps.length}</span>` : ''}</div>
+      </a>
+      <a class="bcard b-swim" href="/activites?what=g:aquatique">
+        <h2 class="btitle">Natation</h2>
+        <div class="bphoto"><img src="${photo('natation-initiation')}" alt="Enfants en cours de natation avec une monitrice">${countBadge('aquatique')}</div>
+      </a>
+      <a class="bcard b-nature" href="/activites?what=g:nature">
+        <h2 class="btitle">Nature & aventure</h2>
+        <div class="bphoto"><img src="${photo('exploration-nature')}" alt="Jeunes explorant la forêt avec une carte">${countBadge('nature')}</div>
+      </a>
     </div>
-    <div class="finder-steps">
-      <div class="step-block"><p class="step-label"><span>1</span> Quelle activité ?</p>
-        <div class="fams">${m.groups.map((g) => { const st = styleFor(null, g.slug); const ph = photoFor(null, g.slug); return html`<button type="button" class="fam ${ph ? 'has-photo' : ''}" data-action="pick-fam" data-v="g:${g.slug}" style="--c:${st.color}">${ph ? html`<img src="${ph}" alt="" loading="lazy">` : ''}${raw(picto(st.key, { size: 42 }))}<span>${g.name}</span></button>`; })}</div></div>
-      <div class="step-row">
-        <div class="step-block"><p class="step-label"><span>2</span> Quel âge ?</p>
-          <div class="age-dots">${Object.entries(AGE_GROUP_LABELS).map(([k, l]) => html`<button type="button" class="age-dot" data-action="pick-age" data-v="t:${k}">${l.replace(' ans', '').replace(' et +', '+')}</button>`)}</div></div>
-        <div class="step-block"><p class="step-label"><span>3</span> Où ?</p>${citySelect('city', prefCityObj?.slug, { placeholder: 'Tout le Gabon', id: 'finder-city' })}</div>
-      </div>
-      <button class="btn btn-primary btn-lg btn-block" id="finder-go" data-action="finder-go">Voir les activités</button>
-      <p class="finder-alt">Vous cherchez un nom précis ? <a href="/recherche">Recherche par mot-clé</a> · <a href="/carte">Carte du Gabon</a></p>
-    </div>
+    <ul class="promises">
+      <li><b>Tarifs affichés</b><span>Prix, formules et frais annexes avant de vous déplacer</span></li>
+      <li><b>Inscription claire</b><span>Dates limites, documents demandés, modalités</span></li>
+      <li><b>Contact direct</b><span>Appel, WhatsApp ou message au club ou au coach</span></li>
+      <li><b>Pour chaque âge</b><span>Seules les activités adaptées à votre enfant s'affichent</span></li>
+    </ul>
+    <div class="more-fams">${m.groups.filter((g) => !['sports-collectifs', 'arts-martiaux', 'aquatique', 'nature'].includes(g.slug)).map((g) => { const st = styleFor(null, g.slug); return html`<a href="/activites?what=g:${g.slug}" style="--c:${st.color}">${raw(picto(st.key, { size: 26 }))}${g.name}</a>`; })}</div>
   </div></section>
   ${ticker.length ? html`<div class="ticker" aria-label="Inscriptions et stages en cours"><div class="ticker-track">${[...ticker, ...ticker].map((l) => html`<a href="${l.url}"><b>${l.reg_state === 'ouvertes' ? 'Inscriptions ouvertes' : l.kind_label}</b> ${l.title} — ${l.city.name}${l.reg_end ? ` · jusqu'au ${fmtDate(l.reg_end)}` : ''}</a>`)}</div></div>` : ''}
   ${h.banner ? html`<div class="container"><p class="notice">${h.banner}</p></div>` : ''}

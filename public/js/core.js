@@ -439,7 +439,7 @@ export function season() {
 export function renderLayout() {
   const me = state.me;
   $('#header').innerHTML = String(html`<div class="container bar">
-    <a class="logo" href="/" aria-label="G-Sports, accueil"><img src="/img/icons/icon-192.png" alt="" width="34" height="34"><span class="wordmark"><b>G</b>-Sports</span></a>
+    <a class="logo" href="/" aria-label="G-Sports, accueil"><span class="wordmark"><b>G</b>-Sports</span></a>
     <nav class="main-nav" aria-label="Navigation principale">${NAV.map(([h, l]) => html`<a href="${h}" class="${isActive(h) ? 'active' : ''}">${l}</a>`)}</nav>
     <div class="header-actions">
       <a class="icon-btn hide-sm" href="/favoris" aria-label="Mes favoris">${icon('heart')}</a>
@@ -456,7 +456,7 @@ export function renderLayout() {
     <a href="${me ? spaceLink() : '/connexion'}" class="${me && isActive(spaceLink()) ? 'active' : ''}">${icon('user')}${me ? 'Mon espace' : 'Compte'}</a>`);
   $('#footer').innerHTML = String(html`<div class="container">
     <div class="cols">
-      <div><a class="logo" href="/"><img src="/img/icons/icon-192.png" alt="" width="34" height="34"><span class="wordmark"><b>G</b>-Sports</span></a>
+      <div><a class="logo" href="/"><span class="wordmark"><b>G</b>-Sports</span></a>
         <p class="footer-slogan">${state.meta?.home?.slogan || 'À chaque jeune son activité. À chaque talent son terrain.'}</p>
         ${installAvailable() ? html`<p style="margin-top:14px"><button class="btn btn-primary btn-sm" data-action="install">${icon('download', 16)} Installer l'application</button></p>` : ''}</div>
       <div><h4>Explorer</h4><ul><li><a href="/activites">Toutes les activités</a></li><li><a href="/sports">Sports</a></li><li><a href="/extrascolaire">Extrascolaire</a></li><li><a href="/stages">Stages</a></li><li><a href="/camps">Camps de vacances</a></li><li><a href="/calendrier">Calendrier</a></li><li><a href="/carte">Carte du Gabon</a></li></ul></div>
