@@ -2,10 +2,10 @@
 -- Toutes les tables vivent dans le schéma « gsports » (search_path), séparé des autres applications.
 -- Les dates sont stockées en texte UTC « AAAA-MM-JJ HH:MI:SS », manipulées par gs_datetime / gs_date.
 
-CREATE OR REPLACE FUNCTION gs_datetime(t text, m text DEFAULT NULL) RETURNS text LANGUAGE sql STABLE AS $$
+CREATE OR REPLACE FUNCTION gs_datetime(t text, m text DEFAULT NULL) RETURNS text LANGUAGE sql STABLE SET search_path = pg_catalog AS $$
   SELECT to_char((CASE WHEN t = 'now' THEN (now() AT TIME ZONE 'utc') ELSE t::timestamp END) + COALESCE(m::interval, interval '0'), 'YYYY-MM-DD HH24:MI:SS')
 $$;
-CREATE OR REPLACE FUNCTION gs_date(t text, m text DEFAULT NULL) RETURNS text LANGUAGE sql STABLE AS $$
+CREATE OR REPLACE FUNCTION gs_date(t text, m text DEFAULT NULL) RETURNS text LANGUAGE sql STABLE SET search_path = pg_catalog AS $$
   SELECT to_char((CASE WHEN t = 'now' THEN (now() AT TIME ZONE 'utc') ELSE t::timestamp END) + COALESCE(m::interval, interval '0'), 'YYYY-MM-DD')
 $$;
 
