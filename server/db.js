@@ -10,7 +10,9 @@ const { slugify, normalize, hashPassword } = require('./util');
 
 const REMOTE_URL = process.env.TURSO_DATABASE_URL || process.env.LIBSQL_URL || '';
 const IS_REMOTE = /^(libsql|https?|wss?):/.test(REMOTE_URL);
-const DB_PATH = process.env.GSPORTS_DB || path.join(__dirname, '..', 'data', 'gsports.db');
+// Sur Vercel sans Turso configuré : base temporaire dans /tmp (effacée au redémarrage) pour que le site reste consultable
+const DB_PATH = process.env.GSPORTS_DB || (process.env.VERCEL ? '/tmp/gsports.db' : path.join(__dirname, '..', 'data', 'gsports.db'));
+if (process.env.VERCEL && !IS_REMOTE) console.warn('ATTENTION : TURSO_DATABASE_URL absent, base temporaire non persistante utilisée.');
 if (!IS_REMOTE) fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const client = createClient(IS_REMOTE
