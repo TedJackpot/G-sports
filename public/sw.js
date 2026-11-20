@@ -1,11 +1,11 @@
 /* G-Sports Gabon – Service Worker : cache intelligent pour connexions limitées */
-const VERSION = 'gs-v1.2.0';
+const VERSION = 'gs-v1.3.0';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const IMAGES = `${VERSION}-images`;
 const API = `${VERSION}-api`;
 const PRECACHE = [
-  '/', '/offline.html', '/css/app.css', '/js/app.js', '/js/core.js', '/js/pages-public.js', '/js/pages-account.js', '/js/pages-admin.js',
+  '/', '/offline.html', '/css/app.css', '/js/app.js', '/js/core.js', '/js/pages-public.js', '/js/pages-account.js', '/js/pages-admin.js', '/js/pictos.js',
   '/manifest.webmanifest', '/img/icons/icon-192.png', '/img/icons/icon-512.png', '/img/icons/favicon-32.png',
   '/img/photos/basket-joie.jpg', '/img/photos/basket-joie-sm.jpg',
 ];

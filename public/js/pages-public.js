@@ -5,85 +5,107 @@ import {
   cityBySlug, groupBySlug, catBySlug, photo, initials, listingCard, profileCard, emptyCity, citySelect, provinceSelect,
   categorySelect, ageSelect, skeletonGrid, favBtn, badgeList, lsGet, lsSet, installAvailable, spaceLink, render, priceParts, regLine, daysText,
 } from './core.js';
+import { picto, styleFor } from './pictos.js';
 
-// ================= ACCUEIL (style éditorial) =================
-// Met en italique la seconde moitié du titre (« … qui fera grandir votre enfant. »)
-function heroTitle(t) {
-  const i = t.indexOf(' qui ');
-  if (i > 0) return html`${t.slice(0, i)} <em>${t.slice(i + 1)}</em>`;
-  const w = t.split(' ');
-  return html`${w.slice(0, -2).join(' ')} <em>${w.slice(-2).join(' ')}</em>`;
-}
+// ================= ACCUEIL : parcours guidé =================
+function heroTitle(t) { return t; }
 function entries(items, emptyMsg) {
-  if (!items.length) return html`<p class="none">${emptyMsg || 'Aucune annonce pour le moment.'} <a href="/inscription-pro">Vous êtes un club ou un coach ? Publiez votre activité.</a></p>`;
+  if (!items.length) return html`<div class="none"><span class="none-picto">${raw(picto('defaut', { size: 34 }))}</span><p>${emptyMsg || 'Aucune annonce pour le moment.'} <a href="/inscription-pro">Vous êtes un club ou un coach ? Publiez votre activité.</a></p></div>`;
   return html`<div class="entries">${items.map(listingCard)}</div>`;
 }
-let sectionNo = 0;
-function section(title, sub, link, body, { linkLabel = 'Tout voir' } = {}) {
-  sectionNo += 1;
-  return html`<section class="section"><div class="container">
-    <header class="section-head"><span class="section-num">${String(sectionNo).padStart(2, '0')}</span>
-      <div class="section-title"><h2>${title}</h2>${sub ? html`<p>${sub}</p>` : ''}</div>
+function section(title, sub, link, body, { linkLabel = 'Tout voir', tone = '' } = {}) {
+  return html`<section class="section ${tone}"><div class="container">
+    <header class="section-head"><div><h2>${title}</h2>${sub ? html`<p>${sub}</p>` : ''}</div>
       ${link ? html`<a class="more" href="${link}">${linkLabel} →</a>` : ''}</header>${body}</div></section>`;
 }
+// État du sélecteur de l'accueil
+const finder = { what: '', age: '', city: '' };
+function finderUrl() {
+  const qs = new URLSearchParams();
+  if (finder.what) qs.set('what', finder.what);
+  if (finder.age) qs.set('age', finder.age);
+  if (finder.city) qs.set('city', finder.city);
+  return '/activites' + (qs.toString() ? '?' + qs : '');
+}
+async function finderCount() {
+  const q = {};
+  if (finder.what) q.group = finder.what.slice(2);
+  if (finder.age) q.agegroup = finder.age.slice(2);
+  if (finder.city) q.city = finder.city;
+  try { const r = await api('/api/listings?' + new URLSearchParams({ ...q, limit: 1 })); return r.total; } catch { return null; }
+}
+async function refreshFinder() {
+  $$('.fam').forEach((b) => b.classList.toggle('on', b.dataset.v === finder.what));
+  $$('.age-dot').forEach((b) => b.classList.toggle('on', b.dataset.v === finder.age));
+  const btn = $('#finder-go');
+  if (!btn) return;
+  const n = await finderCount();
+  btn.textContent = n == null ? 'Voir les activités' : n === 0 ? 'Aucune activité pour ces choix — voir quand même' : `Voir ${n} activité${n > 1 ? 's' : ''}`;
+}
+action('pick-fam', (el) => { finder.what = finder.what === el.dataset.v ? '' : el.dataset.v; refreshFinder(); });
+action('pick-age', (el) => { finder.age = finder.age === el.dataset.v ? '' : el.dataset.v; refreshFinder(); });
+action('finder-go', () => navigate(finderUrl()));
+document.addEventListener('change', (e) => { if (e.target.id === 'finder-city') { finder.city = e.target.value; if (finder.city) lsSet('gs_city', finder.city); refreshFinder(); } });
+
 addRoute('/', async () => {
   setMeta(null, 'Trouvez une activité sportive, artistique ou éducative pour votre enfant partout au Gabon : tarifs, horaires, modalités d\'inscription.');
   const home = await api('/api/home');
   const m = state.meta;
   const h = m.home || {};
-  sectionNo = 0;
   const hasDemo = [...home.newest, ...home.popular].some((l) => l.is_demo);
   const prefCity = state.me ? (state.me.preferred_cities?.[0] || state.me.city_id) : lsGet('gs_city', null);
   const prefCityObj = prefCity ? m.cities.find((c) => c.id === Number(prefCity) || c.slug === prefCity) : null;
+  finder.what = ''; finder.age = ''; finder.city = prefCityObj?.slug || '';
   const clubs = prefCityObj ? [...home.clubs.filter((c) => c.city?.slug === prefCityObj.slug), ...home.clubs.filter((c) => c.city?.slug !== prefCityObj.slug)] : home.clubs;
+  const ticker = [...home.open, ...home.camps].slice(0, 12);
+  onMount(refreshFinder);
   return html`
-  <section class="masthead"><div class="container">
-    <p class="kicker">Sports · Arts · Nature · Sciences — de 5 à 18 ans, dans les 9 provinces</p>
-    <h1>${heroTitle(h.heroTitle || "Trouvez l'activité qui fera grandir votre enfant.")}</h1>
-    <p class="lede">${h.heroSubtitle || 'Clubs, coachs, stages et activités extrascolaires partout au Gabon.'} Comparez les tarifs, les horaires et les modalités d'inscription, puis contactez directement l'encadrant.</p>
-    <form class="search-card" data-form="hero-search" role="search">
-      <label class="field"><span>Activité</span><input name="q" list="dl-acts" placeholder="Football, natation, danse, robotique…" autocomplete="off"></label>
-      <label class="field"><span>Ville</span>${citySelect('city', prefCityObj?.slug, { placeholder: 'Tout le Gabon', cls: '' })}</label>
-      <label class="field"><span>Âge de l'enfant</span>${ageSelect('age', '', { placeholder: 'Tous âges', cls: '' })}</label>
-      <button class="btn btn-primary" type="submit">Rechercher</button>
-      <datalist id="dl-acts">${m.groups.flatMap((g) => [html`<option value="${g.name}">`, ...g.categories.map((c) => html`<option value="${c.name}">`)])}</datalist>
-    </form>
-    <nav class="index" aria-label="Familles d'activités">
-      ${m.groups.map((g, i) => html`<a href="/activites?what=g:${g.slug}"><span class="n">${String(i + 1).padStart(2, '0')}</span><b>${g.name}</b><small>${g.categories.slice(0, 4).map((c) => c.name).join(', ')}…</small></a>`)}
-    </nav>
+  <section class="finder"><div class="container">
+    <div class="finder-intro">
+      <h1>${h.heroTitle || "Trouvez l'activité qui fera grandir votre enfant."}</h1>
+      <p>${h.heroSubtitle || 'Clubs, coachs, stages et activités extrascolaires partout au Gabon.'} Tarifs, horaires et modalités d'inscription, puis contact direct avec l'encadrant.</p>
+    </div>
+    <div class="finder-steps">
+      <div class="step-block"><p class="step-label"><span>1</span> Quelle activité ?</p>
+        <div class="fams">${m.groups.map((g) => { const st = styleFor(null, g.slug); return html`<button type="button" class="fam" data-action="pick-fam" data-v="g:${g.slug}" style="--c:${st.color}">${raw(picto(st.key, { size: 42 }))}<span>${g.name}</span></button>`; })}</div></div>
+      <div class="step-row">
+        <div class="step-block"><p class="step-label"><span>2</span> Quel âge ?</p>
+          <div class="age-dots">${Object.entries(AGE_GROUP_LABELS).map(([k, l]) => html`<button type="button" class="age-dot" data-action="pick-age" data-v="t:${k}">${l.replace(' ans', '').replace(' et +', '+')}</button>`)}</div></div>
+        <div class="step-block"><p class="step-label"><span>3</span> Où ?</p>${citySelect('city', prefCityObj?.slug, { placeholder: 'Tout le Gabon', id: 'finder-city' })}</div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" id="finder-go" data-action="finder-go">Voir les activités</button>
+      <p class="finder-alt">Vous cherchez un nom précis ? <a href="/recherche">Recherche par mot-clé</a> · <a href="/carte">Carte du Gabon</a></p>
+    </div>
   </div></section>
+  ${ticker.length ? html`<div class="ticker" aria-label="Inscriptions et stages en cours"><div class="ticker-track">${[...ticker, ...ticker].map((l) => html`<a href="${l.url}"><b>${l.reg_state === 'ouvertes' ? 'Inscriptions ouvertes' : l.kind_label}</b> ${l.title} — ${l.city.name}${l.reg_end ? ` · jusqu'au ${fmtDate(l.reg_end)}` : ''}</a>`)}</div></div>` : ''}
   ${h.banner ? html`<div class="container"><p class="notice">${h.banner}</p></div>` : ''}
   ${home.posts.map((p) => html`<div class="container"><p class="notice"><b>${p.title}</b> — ${p.body.slice(0, 220)} ${p.link ? html`<a href="${p.link}">En savoir plus</a>` : ''}</p></div>`)}
   ${hasDemo ? html`<div class="container"><p class="notice demo"><b>Exemples fictifs.</b> Les annonces marquées ainsi montrent la présentation d'une offre ; elles ne correspondent à aucune activité réelle.</p></div>` : ''}
 
-  ${section('Inscriptions ouvertes', "Les périodes d'inscription en cours, classées par date limite.", '/activites?open=1&sort=inscription', entries(home.open, "Aucune période d'inscription ouverte en ce moment."))}
-  ${section('Par âge', 'Seules les activités adaptées à l\'âge choisi s\'affichent.', null, html`<div class="ages">
-    ${Object.entries(AGE_GROUP_LABELS).map(([k, l]) => html`<a href="/activites?age=t:${k}"><b>${l.replace(' ans', '').replace(' et +', '+')}</b><span>ans</span></a>`)}</div>`)}
-  ${section('Par ville', 'Libreville, Port-Gentil, Franceville, Oyem… et toutes les localités du Gabon.', '/carte', html`<div class="toc">
-    ${home.cityCounts.map((c) => html`<a href="/activites/${c.slug}"><span>${c.name}</span><i></i><b>${c.n ? `${c.n} annonce${c.n > 1 ? 's' : ''}` : '—'}</b></a>`)}</div>
-    <p class="small muted">Une autre localité ? <a href="/activites">Choisissez-la dans la recherche</a> ou <a href="/carte">ouvrez la carte</a>.</p>`, { linkLabel: 'Carte du Gabon' })}
-  ${section('Stages et camps à venir', 'Dates, programme, encadrement, repas et transport.', '/stages', entries(home.camps, 'Aucun stage ou camp annoncé pour le moment.'))}
-  ${section('Pendant les vacances', 'Les activités proposées pendant les vacances scolaires.', '/activites?holidays=1', entries(home.holidays, 'Aucune activité de vacances annoncée pour le moment.'))}
+  ${section('Inscriptions ouvertes', "Classées par date limite : ne laissez pas passer la rentrée.", '/activites?open=1&sort=inscription', entries(home.open, "Aucune période d'inscription ouverte en ce moment."))}
+  ${section('Stages et camps à venir', 'Dates, programme, encadrement, repas et transport.', '/stages', entries(home.camps, 'Aucun stage ou camp annoncé pour le moment.'), { tone: 'tint' })}
   ${section('Nouvelles annonces', 'Les dernières publications des clubs et des coachs.', '/annonces', entries(home.newest))}
-  ${section('Par budget', 'Tarifs annoncés par les organisateurs, réglés directement auprès d\'eux.', '/activites?maxprice=10000&sort=prix', html`
-    <div class="budgets">${[[10000, "Jusqu'à 10 000 FCFA"], [25000, "Jusqu'à 25 000 FCFA"], [50000, "Jusqu'à 50 000 FCFA"]].map(([v, l]) => html`<a href="/activites?maxprice=${v}&sort=prix">${l}</a>`)}<a href="/activites?sort=prix">Tous, du moins cher au plus cher</a></div>
-    ${entries(home.free, 'Aucune activité à moins de 10 000 FCFA annoncée pour le moment.')}`, { linkLabel: 'Trier par tarif' })}
-  ${home.popular.length ? section('Les plus consultées', null, '/activites?sort=populaire', entries(home.popular.slice(0, 4))) : ''}
-  ${section('Clubs et salles', prefCityObj ? `Autour de ${prefCityObj.name} en priorité.` : 'Clubs sportifs, gymnases, associations et centres de loisirs.', '/clubs', clubs.length ? html`<div class="grid cards">${clubs.slice(0, 6).map(profileCard)}</div>` : entries([], 'Aucun club référencé pour le moment.'))}
-  ${section('Coachs indépendants', 'Cours individuels ou en groupe, en salle, en extérieur ou à domicile.', '/coachs', home.coaches.length ? html`<div class="grid cards">${home.coaches.slice(0, 6).map(profileCard)}</div>` : entries([], 'Aucun coach référencé pour le moment.'))}
-  ${home.discover.length ? section("Journées découverte et séances d'essai", 'Pour essayer avant de s\'engager.', '/activites?kind=decouverte,essai,portes-ouvertes', entries(home.discover)) : ''}
+  ${section('Par budget', "Tarifs annoncés par les organisateurs, réglés directement auprès d'eux.", '/activites?sort=prix', html`
+    <div class="budgets">${[[10000, "≤ 10 000 FCFA"], [25000, "≤ 25 000 FCFA"], [50000, "≤ 50 000 FCFA"]].map(([v, l]) => html`<a href="/activites?maxprice=${v}&sort=prix"><b>${l}</b><span>par période</span></a>`)}<a href="/activites?free=1"><b>Activités gratuites</b><span>proposées sans frais</span></a></div>
+    ${entries(home.free, 'Aucune activité à moins de 10 000 FCFA annoncée pour le moment.')}`, { linkLabel: 'Trier par tarif', tone: 'tint' })}
+  ${section('Pendant les vacances', 'Les activités proposées pendant les vacances scolaires.', '/activites?holidays=1', entries(home.holidays, 'Aucune activité de vacances annoncée pour le moment.'))}
+  ${section('Par ville', 'Les 9 provinces sont couvertes par la recherche.', '/carte', html`<div class="city-cloud">
+    ${home.cityCounts.map((c) => html`<a href="/activites/${c.slug}" class="${c.n ? 'has' : ''}">${c.name}${c.n ? html` <b>${c.n}</b>` : ''}</a>`)}<a href="/activites" class="other">Autre localité…</a></div>`, { linkLabel: 'Carte du Gabon', tone: 'navy' })}
+  ${section('Clubs et salles', prefCityObj ? `Autour de ${prefCityObj.name} en priorité.` : 'Clubs sportifs, gymnases, associations et centres de loisirs.', '/clubs', clubs.length ? html`<div class="pcards">${clubs.slice(0, 6).map(profileCard)}</div>` : entries([], 'Aucun club référencé pour le moment.'))}
+  ${section('Coachs indépendants', 'Cours individuels ou en groupe, en salle, en extérieur ou à domicile.', '/coachs', home.coaches.length ? html`<div class="pcards">${home.coaches.slice(0, 6).map(profileCard)}</div>` : entries([], 'Aucun coach référencé pour le moment.'), { tone: 'tint' })}
+  ${home.discover.length ? section("Journées découverte et séances d'essai", "Pour essayer avant de s'engager.", '/activites?kind=decouverte,essai,portes-ouvertes', entries(home.discover)) : ''}
   ${section("S'inscrire, mode d'emploi", 'Ce que les parents demandent le plus souvent.', '/comment-ca-marche', html`<ol class="steps">
-    <li><h3>Choisir</h3><p>Ville, âge de l'enfant, activité : seules les offres adaptées apparaissent.</p></li>
-    <li><h3>Comparer</h3><p>Tarif et formules, frais annexes (licence, tenue), jours et horaires, encadrement.</p></li>
-    <li><h3>Vérifier les modalités</h3><p>Période et date limite d'inscription, documents demandés (certificat médical, photo, autorisation parentale).</p></li>
-    <li><h3>Contacter</h3><p>Appel, WhatsApp ou message : vous échangez directement avec le club ou le coach, sans intermédiaire.</p></li></ol>`, { linkLabel: 'En savoir plus' })}
+    <li style="--c:#18A058"><h3>Choisir</h3><p>Activité, âge, ville : seules les offres adaptées apparaissent.</p></li>
+    <li style="--c:#1668E3"><h3>Comparer</h3><p>Tarif et formules, frais annexes (licence, tenue), jours, horaires, encadrement.</p></li>
+    <li style="--c:#F5A300"><h3>Vérifier</h3><p>Date limite, documents demandés : certificat médical, photo, autorisation parentale.</p></li>
+    <li style="--c:#E5383B"><h3>Contacter</h3><p>Appel, WhatsApp ou message, directement avec le club ou le coach.</p></li></ol>`, { linkLabel: 'En savoir plus' })}
   <section class="section"><div class="container"><div class="pro-band">
-    <div><p class="kicker">Clubs · Associations · Gymnases · Coachs · Organisateurs</p>
-      <h2>Présentez vos activités aux familles de votre ville.</h2>
-      <p>Un profil, autant d'annonces que nécessaire (saison, stages, camps, portes ouvertes, séances d'essai), et les demandes des parents reçues directement sur votre téléphone.</p>
-      <div class="row"><a class="btn btn-primary" href="/inscription-pro">Référencer mon activité</a><a class="btn btn-ghost" href="/modeles">Voir les modèles d'annonces</a></div></div>
-    <div class="pro-aside"><p>Vous connaissez un club ou un coach qui n'est pas encore sur G-Sports ?</p><button class="btn btn-ghost" data-action="invite">Lui envoyer le lien</button>
-      ${installAvailable() ? html`<button class="link-btn" data-action="install">Installer l'application sur ce téléphone</button>` : ''}</div>
+    <div><p class="eyebrow">Clubs · Associations · Gymnases · Coachs · Organisateurs</p>
+      <h2>Présentez vos activités aux familles de votre ville</h2>
+      <p>Un profil, autant d'annonces que nécessaire (saison, stages, camps, portes ouvertes, séances d'essai) et les demandes des parents reçues directement sur votre téléphone.</p>
+      <div class="row"><a class="btn btn-primary" href="/inscription-pro">Référencer mon activité</a><a class="btn btn-light" href="/modeles">Voir les modèles d'annonces</a></div></div>
+    <div class="pro-pictos">${['football', 'combat', 'danse', 'natation', 'musique', 'robot'].map((k, i) => html`<span style="--c:${['#18A058', '#102C46', '#E83E8C', '#1668E3', '#7B4DFF', '#0FA3B1'][i]}">${raw(picto(k, { size: 44 }))}</span>`)}
+      <p>Vous connaissez un club qui n'est pas encore sur G-Sports ? <button class="link-btn" data-action="invite">Envoyez-lui le lien</button></p></div>
   </div></div></section>`;
 });
 form('hero-search', (f, d) => {
@@ -291,13 +313,14 @@ addRoute('/annonce/:slug', async (ctx) => {
   const fact = (k, v) => (v ? html`<div><dt>${k}</dt><dd>${v}</dd></div>` : '');
   return html`
   ${l.preview ? html`<div class="container"><p class="notice warn"><b>Aperçu :</b> cette annonce n'est pas visible publiquement (statut : ${l.status}).</p></div>` : ''}
-  <header class="doc-head"><div class="container">
+  <header class="doc-head" style="--c:${styleFor(l.cat_slug, l.group?.slug).color}"><div class="container doc-head-row">
+    <div class="doc-picto">${l.cover ? html`<img src="${l.cover}" alt="">` : raw(picto(styleFor(l.cat_slug, l.group?.slug).key, { size: 88 }))}</div><div class="doc-head-text">
     <p class="crumbs"><a href="/">Accueil</a> / <a href="/activites/${l.city.slug}">${l.city.name}</a> / ${l.cat_name || l.kind_label}</p>
     <p class="kicker">${l.cat_name || ''}${l.cat_name ? ' — ' : ''}${l.kind_label}</p>
     <h1>${l.title}</h1>
     <p class="byline">Proposé par <a href="${l.org.url}">${l.org.name}</a> · ${l.city.name}${l.district ? ', ' + l.district : ''} · ${l.province.name}</p>
     <div class="row tags">${badgeList(l, 5)}<span class="spacer"></span>${favBtn(l.id)}<button class="icon-btn" data-action="share" data-url="${l.url}" data-title="${l.title}" aria-label="Partager l'annonce">${icon('share', 18)}</button></div>
-  </div></header>
+  </div></div></header>
   <div class="container detail">
     <div class="doc">
       ${demo ? html`<p class="notice demo"><b>Exemple fictif.</b> Cette annonce illustre la structure d'une offre ; elle ne correspond à aucune activité réelle.</p>` : ''}
@@ -459,7 +482,7 @@ async function profilePage(ctx) {
   const yes = (b, l) => (b ? html`<span class="badge soft">${l}</span>` : '');
   return html`
   ${p.verification !== 'approved' ? html`<div class="container" style="margin-top:12px"><div class="notice warn"><b>Aperçu :</b> ce profil est en attente de validation et n'est pas encore public.</div></div>` : ''}
-  <header class="doc-head"><div class="container doc-head-row">
+  <header class="doc-head" style="--c:#102C46"><div class="container doc-head-row">
     ${p.logo ? html`<img class="avatar ${p.is_coach ? 'round' : ''}" src="${p.logo}" alt="">` : html`<div class="avatar ${p.is_coach ? 'round' : ''}">${initials(p.name)}</div>`}
     <div><p class="crumbs"><a href="/">Accueil</a> / <a href="/${p.is_coach ? 'coachs' : 'clubs'}">${p.is_coach ? 'Coachs' : 'Clubs & salles'}</a></p>
       <p class="kicker">${p.type_label}${p.is_demo ? ' — exemple fictif' : ''}</p><h1>${p.name}</h1>
