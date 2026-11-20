@@ -46,7 +46,7 @@ async function getUser(req) {
   req._user = null;
   if (token) {
     const row = (await db.prepare(`SELECT u.id, u.email, u.role, u.name, u.phone, u.city_id, u.status, u.email_notifications, u.preferred_cities
-      FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > datetime('now')`).get(sha256(token)));
+      FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > gs_datetime('now')`).get(sha256(token)));
     if (row && row.status === 'active') req._user = row;
   }
   return req._user;
@@ -59,8 +59,8 @@ async function requireUser(req, ...roles) {
 }
 async function createSession(res, userId) {
   const token = randomToken();
-  (await db.prepare(`INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, datetime('now', '+${SESSION_DAYS} days'))`).run(sha256(token), userId));
-  (await db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(userId));
+  (await db.prepare(`INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, gs_datetime('now', '+${SESSION_DAYS} days'))`).run(sha256(token), userId));
+  (await db.prepare("UPDATE users SET last_login = gs_datetime('now') WHERE id = ?").run(userId));
   res.setCookie('gs_session', token, SESSION_DAYS * 86400);
 }
 async function audit(userId, action, details) {
@@ -104,7 +104,7 @@ const LISTING_SELECT = `SELECT l.*, c.name city_name, c.slug city_slug, c.lat ci
   JOIN cities c ON c.id = l.city_id JOIN provinces pv ON pv.id = c.province_id
   LEFT JOIN categories cat ON cat.id = l.category_id LEFT JOIN category_groups g ON g.id = cat.group_id
   JOIN profiles pr ON pr.id = l.profile_id JOIN users u ON u.id = pr.user_id`;
-const PUBLIC_WHERE = `l.status = 'published' AND (l.expires_at IS NULL OR l.expires_at >= date('now'))
+const PUBLIC_WHERE = `l.status = 'published' AND (l.expires_at IS NULL OR l.expires_at >= gs_date('now'))
   AND pr.verification = 'approved' AND u.status = 'active'`;
 
 function registrationState(l) {
@@ -244,22 +244,22 @@ async function searchListings(q, { publicOnly = true, extraWhere = '', extraPara
   if (q.maxprice) { const m = Number(q.maxprice); if (m >= 0) { where.push('(l.is_free = 1 OR (l.price_amount IS NOT NULL AND l.price_amount <= ?))'); params.push(m); } }
   if (q.level && LEVELS.includes(q.level)) { where.push("(',' || l.levels || ',') LIKE ?"); params.push(`%,${q.level},%`); }
   if (q.beginner === '1') where.push('l.beginners = 1');
-  if (q.open === '1') where.push(`(l.reg_start IS NOT NULL OR l.reg_end IS NOT NULL) AND (l.reg_start IS NULL OR l.reg_start <= date('now'))
-    AND (l.reg_end IS NULL OR l.reg_end >= date('now')) AND l.places_status != 'complet'`);
+  if (q.open === '1') where.push(`(l.reg_start IS NOT NULL OR l.reg_end IS NOT NULL) AND (l.reg_start IS NULL OR l.reg_start <= gs_date('now'))
+    AND (l.reg_end IS NULL OR l.reg_end >= gs_date('now')) AND l.places_status != 'complet'`);
   if (q.holidays === '1') where.push("(l.holidays = 1 OR l.kind IN ('stage','camp'))");
   if (q.weekend === '1') where.push("(l.days LIKE '%sam%' OR l.days LIKE '%dim%')");
   if (q.weekday === '1') where.push("(l.days LIKE '%lun%' OR l.days LIKE '%mar%' OR l.days LIKE '%mer%' OR l.days LIKE '%jeu%' OR l.days LIKE '%ven%')");
   if (q.setting === 'indoor' || q.setting === 'outdoor') { where.push('(l.setting = ? OR l.setting = \'mixte\')'); params.push(q.setting); }
   if (q.from) { where.push('(COALESCE(l.end_date, l.expires_at, \'9999\') >= ?)'); params.push(String(q.from).slice(0, 10)); }
   if (q.to) { where.push('(COALESCE(l.start_date, l.reg_start, \'0000\') <= ?)'); params.push(String(q.to).slice(0, 10)); }
-  if (q.upcoming === '1') where.push("(l.start_date IS NULL OR l.start_date >= date('now') OR l.end_date >= date('now'))");
+  if (q.upcoming === '1') where.push("(l.start_date IS NULL OR l.start_date >= gs_date('now') OR l.end_date >= gs_date('now'))");
   if (q.profile) { where.push('pr.id = ?'); params.push(Number(q.profile)); }
   if (q.ids) {
     const ids = String(q.ids).split(',').map(Number).filter(Number.isInteger).slice(0, 100);
     if (!ids.length) return { items: [], total: 0 };
     where.push(`l.id IN (${ids.map(() => '?').join(',')})`); params.push(...ids);
   }
-  let order = 'l.published_at DESC';
+  let order = 'l.published_at DESC NULLS LAST';
   switch (q.sort) {
     case 'inscription': order = "CASE WHEN l.reg_end IS NULL THEN 1 ELSE 0 END, l.reg_end ASC"; break;
     case 'prix': order = 'CASE WHEN l.is_free = 1 THEN 0 WHEN l.price_amount IS NULL THEN 2 ELSE 1 END, l.price_amount ASC'; break;
@@ -451,7 +451,7 @@ async function getOwnListing(user, id) {
 async function getMeta() {
   const cities = (await db.prepare(`SELECT c.id, c.slug, c.name, c.lat, c.lng, c.featured, pv.slug province, pv.name province_name,
     (SELECT COUNT(*) FROM listings l JOIN profiles pr ON pr.id = l.profile_id JOIN users u ON u.id = pr.user_id WHERE l.city_id = c.id AND ${PUBLIC_WHERE}) listings
-    FROM cities c JOIN provinces pv ON pv.id = c.province_id WHERE c.active = 1 ORDER BY c.name COLLATE NOCASE`).all());
+    FROM cities c JOIN provinces pv ON pv.id = c.province_id WHERE c.active = 1 ORDER BY lower(c.name)`).all());
   const provinces = (await db.prepare('SELECT id, slug, name, capital FROM provinces ORDER BY name').all());
   const groups = (await db.prepare('SELECT id, slug, name, icon, color, image, kind FROM category_groups WHERE active = 1 ORDER BY sort, name').all());
   const cats = (await db.prepare('SELECT id, slug, name, group_id FROM categories WHERE active = 1 ORDER BY group_id, sort, name').all());
@@ -514,7 +514,7 @@ route('GET', '/api/profiles', async (req) => {
   if (q.discipline) { where.push('pr.search_text LIKE ?'); params.push(`%${normalize(q.discipline)}%`); }
   if (q.age) { const a = Number(q.age); if (Number.isInteger(a)) { where.push('(pr.age_min IS NULL OR pr.age_min <= ?) AND (pr.age_max IS NULL OR pr.age_max >= ?)'); params.push(a, a); } }
   if (q.home === '1') where.push('pr.home_lessons = 1');
-  const rows = (await db.prepare(`${PROFILE_SELECT.replace('SELECT pr.*,', `SELECT pr.*, (SELECT COUNT(*) FROM listings l WHERE l.profile_id = pr.id AND l.status = 'published' AND (l.expires_at IS NULL OR l.expires_at >= date('now'))) listing_count,`)}
+  const rows = (await db.prepare(`${PROFILE_SELECT.replace('SELECT pr.*,', `SELECT pr.*, (SELECT COUNT(*) FROM listings l WHERE l.profile_id = pr.id AND l.status = 'published' AND (l.expires_at IS NULL OR l.expires_at >= gs_date('now'))) listing_count,`)}
     WHERE ${where.join(' AND ')} ORDER BY pr.updated_at DESC LIMIT 200`).all(...params));
   return { total: rows.length, items: rows.map(r => serializeProfile(r)) };
 });
@@ -579,7 +579,7 @@ route('GET', '/api/map', async () => {
     FROM cities c JOIN provinces pv ON pv.id = c.province_id
     LEFT JOIN listings l ON l.city_id = c.id AND l.id IN (SELECT l.id FROM listings l JOIN profiles pr ON pr.id = l.profile_id JOIN users u ON u.id = pr.user_id WHERE ${PUBLIC_WHERE})
     LEFT JOIN categories cat ON cat.id = l.category_id LEFT JOIN category_groups g ON g.id = cat.group_id
-    WHERE c.active = 1 GROUP BY c.id, g.id ORDER BY c.name`).all());
+    WHERE c.active = 1 GROUP BY c.id, pv.id, g.id ORDER BY c.name`).all());
   const map = new Map();
   for (const r of rows) {
     if (!map.has(r.id)) map.set(r.id, { slug: r.slug, name: r.name, lat: r.lat, lng: r.lng, province: r.province, province_name: r.province_name, total: 0, groups: [] });
@@ -780,14 +780,14 @@ route('GET', '/api/me/favorites', async (req) => {
 route('POST', '/api/me/favorites/:id', async (req, res, { id }) => {
   const u = await requireUser(req);
   if (!(await db.prepare('SELECT 1 FROM listings WHERE id = ?').get(Number(id)))) throw new HttpError(404, 'Annonce introuvable.');
-  (await db.prepare('INSERT OR IGNORE INTO favorites (user_id, listing_id) VALUES (?, ?)').run(u.id, Number(id)));
+  (await db.prepare('INSERT INTO favorites (user_id, listing_id) VALUES (?, ?) ON CONFLICT DO NOTHING').run(u.id, Number(id)));
   return { ok: true };
 });
 route('DELETE', '/api/me/favorites/:id', async (req, res, { id }) => { (await db.prepare('DELETE FROM favorites WHERE user_id = ? AND listing_id = ?').run((await requireUser(req)).id, Number(id))); return { ok: true }; });
 route('POST', '/api/me/favorites-sync', async (req) => {
   const u = await requireUser(req);
   const ids = (Array.isArray(req.body.ids) ? req.body.ids : []).map(Number).filter(Number.isInteger).slice(0, 200);
-  for (const id of ids) if ((await db.prepare('SELECT 1 FROM listings WHERE id = ?').get(id))) (await db.prepare('INSERT OR IGNORE INTO favorites (user_id, listing_id) VALUES (?, ?)').run(u.id, id));
+  for (const id of ids) if ((await db.prepare('SELECT 1 FROM listings WHERE id = ?').get(id))) (await db.prepare('INSERT INTO favorites (user_id, listing_id) VALUES (?, ?) ON CONFLICT DO NOTHING').run(u.id, id));
   return { ok: true };
 });
 
@@ -814,7 +814,7 @@ route('GET', '/api/me/requests', async (req) => {
   return { items: rows.map(r => ({ ...r, type_label: REQUEST_TYPES[r.type], org_url: `/${r.org_type === 'coach' || r.org_type === 'educateur' ? 'coachs' : 'clubs'}/${r.org_slug}`, listing_url: r.lid ? `/annonce/${r.lid}-${r.lslug}` : null })) };
 });
 route('GET', '/api/me/notifications', async (req) => ({ items: (await db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 100').all((await requireUser(req)).id)) }));
-route('POST', '/api/me/notifications/read', async (req) => { (await db.prepare("UPDATE notifications SET read_at = datetime('now') WHERE user_id = ? AND read_at IS NULL").run((await requireUser(req)).id)); return { ok: true }; });
+route('POST', '/api/me/notifications/read', async (req) => { (await db.prepare("UPDATE notifications SET read_at = gs_datetime('now') WHERE user_id = ? AND read_at IS NULL").run((await requireUser(req)).id)); return { ok: true }; });
 
 // --- Téléversement d'images ---
 route('POST', '/api/uploads', async (req) => {
@@ -858,7 +858,7 @@ route('PUT', '/api/pro/profile', async (req) => {
   const p = await getOwnProfile(u);
   const data = await parseProfileInput(req.body, p);
   const cols = Object.keys(data);
-  (await db.prepare(`UPDATE profiles SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ?`).run(...cols.map(c => data[c]), p.id));
+  (await db.prepare(`UPDATE profiles SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = gs_datetime('now') WHERE id = ?`).run(...cols.map(c => data[c]), p.id));
   await refreshProfileSearch(p.id);
   for (const l of (await db.prepare('SELECT id FROM listings WHERE profile_id = ?').all(p.id))) await refreshListingSearch(l.id);
   return { ok: true };
@@ -897,7 +897,7 @@ route('PUT', '/api/pro/listings/:id', async (req, res, { id }) => {
   if (draft && l.status !== 'published') status = 'draft';
   else if (l.status === 'draft' || l.status === 'expired') status = p.verification === 'approved' ? 'published' : 'pending';
   const publishedAt = status === 'published' && !l.published_at ? new Date().toISOString().slice(0, 19).replace('T', ' ') : l.published_at;
-  (await db.prepare(`UPDATE listings SET ${cols.map(c => `${c} = ?`).join(', ')}, slug = ?, status = ?, expires_at = ?, published_at = ?, updated_at = datetime('now') WHERE id = ?`)
+  (await db.prepare(`UPDATE listings SET ${cols.map(c => `${c} = ?`).join(', ')}, slug = ?, status = ?, expires_at = ?, published_at = ?, updated_at = gs_datetime('now') WHERE id = ?`)
     .run(...cols.map(c => d[c]), slugify(d.title), status, computeExpiry(d), publishedAt, l.id));
   await refreshListingSearch(l.id);
   if (status === 'published' && l.status !== 'published') await notifyAlertsFor(l.id);
@@ -914,15 +914,15 @@ route('POST', '/api/pro/listings/:id/:action', async (req, res, { id, action }) 
     if (l.end_date && l.end_date < today()) throw new HttpError(400, 'Les dates de cette annonce sont passées : modifiez-les avant de la renouveler.');
     if (l.status === 'suspended' && l.admin_note) throw new HttpError(403, 'Cette annonce a été suspendue par la modération.');
     const status = p.verification === 'approved' ? 'published' : 'pending';
-    (await db.prepare("UPDATE listings SET status = ?, expires_at = ?, published_at = COALESCE(published_at, datetime('now')), updated_at = datetime('now') WHERE id = ?").run(status, l.end_date || addDays(today(), LISTING_TTL_DAYS), l.id));
+    (await db.prepare("UPDATE listings SET status = ?, expires_at = ?, published_at = COALESCE(published_at, gs_datetime('now')), updated_at = gs_datetime('now') WHERE id = ?").run(status, l.end_date || addDays(today(), LISTING_TTL_DAYS), l.id));
     return { ok: true, status };
   }
-  if (action === 'suspend') { (await db.prepare("UPDATE listings SET status = 'suspended', admin_note = NULL, updated_at = datetime('now') WHERE id = ?").run(l.id)); return { ok: true }; }
+  if (action === 'suspend') { (await db.prepare("UPDATE listings SET status = 'suspended', admin_note = NULL, updated_at = gs_datetime('now') WHERE id = ?").run(l.id)); return { ok: true }; }
   if (action === 'resume') {
     if (l.status !== 'suspended') throw new HttpError(400, "L'annonce n'est pas suspendue.");
     if (l.admin_note) throw new HttpError(403, 'Cette annonce a été suspendue par la modération. Contactez G-Sports.');
     if (l.expires_at && l.expires_at < today()) throw new HttpError(400, 'Annonce expirée : renouvelez-la.');
-    (await db.prepare("UPDATE listings SET status = ?, updated_at = datetime('now') WHERE id = ?").run(p.verification === 'approved' ? 'published' : 'pending', l.id));
+    (await db.prepare("UPDATE listings SET status = ?, updated_at = gs_datetime('now') WHERE id = ?").run(p.verification === 'approved' ? 'published' : 'pending', l.id));
     return { ok: true };
   }
   if (action === 'duplicate') {
@@ -953,7 +953,7 @@ route('PUT', '/api/pro/requests/:id', async (req, res, { id }) => {
   const status = V.oneOf(req.body.status, ['nouveau', 'lu', 'repondu', 'archive'], r.status);
   const reply = V.str(req.body.reply, { max: 2000, field: 'réponse' });
   if (reply) {
-    (await db.prepare("UPDATE contact_requests SET reply = ?, replied_at = datetime('now'), status = 'repondu' WHERE id = ?").run(reply, r.id));
+    (await db.prepare("UPDATE contact_requests SET reply = ?, replied_at = gs_datetime('now'), status = 'repondu' WHERE id = ?").run(reply, r.id));
     if (r.user_id) await notify(r.user_id, 'reponse', `Réponse de ${p.name}`, reply.slice(0, 200), '/espace-parent?tab=demandes');
     mailer.send({ to: r.email, subject: `G-Sports – Réponse de ${p.name}`, text: `${reply}\n\nContact : ${p.phone || ''} ${p.email || ''}` });
   } else (await db.prepare('UPDATE contact_requests SET status = ? WHERE id = ?').run(status, r.id));
@@ -989,10 +989,10 @@ route('PUT', '/api/admin/profiles/:id', async (req, res, { id }) => {
   const verification = V.oneOf(req.body.verification, ['pending', 'approved', 'rejected'], p.verification);
   const note = V.str(req.body.admin_note, { max: 1000, field: 'note' });
   {
-    (await db.prepare("UPDATE profiles SET verification = ?, admin_note = ?, updated_at = datetime('now') WHERE id = ?").run(verification, note, p.id));
+    (await db.prepare("UPDATE profiles SET verification = ?, admin_note = ?, updated_at = gs_datetime('now') WHERE id = ?").run(verification, note, p.id));
     if (verification === 'approved' && p.verification !== 'approved') {
       const pend = (await db.prepare("SELECT id FROM listings WHERE profile_id = ? AND status = 'pending'").all(p.id));
-      (await db.prepare("UPDATE listings SET status = 'published', published_at = COALESCE(published_at, datetime('now')) WHERE profile_id = ? AND status = 'pending'").run(p.id));
+      (await db.prepare("UPDATE listings SET status = 'published', published_at = COALESCE(published_at, gs_datetime('now')) WHERE profile_id = ? AND status = 'pending'").run(p.id));
       for (const l of pend) await notifyAlertsFor(l.id);
     }
   }
@@ -1016,7 +1016,7 @@ route('PUT', '/api/admin/listings/:id', async (req, res, { id }) => {
   if (!l) throw new HttpError(404, 'Annonce introuvable.');
   const status = V.oneOf(req.body.status, ['pending', 'published', 'suspended', 'expired'], l.status);
   const note = V.str(req.body.admin_note, { max: 1000, field: 'note' });
-  (await db.prepare("UPDATE listings SET status = ?, admin_note = ?, published_at = CASE WHEN ? = 'published' THEN COALESCE(published_at, datetime('now')) ELSE published_at END, updated_at = datetime('now') WHERE id = ?")
+  (await db.prepare("UPDATE listings SET status = ?, admin_note = ?, published_at = CASE WHEN ? = 'published' THEN COALESCE(published_at, gs_datetime('now')) ELSE published_at END, updated_at = gs_datetime('now') WHERE id = ?")
     .run(status, status === 'suspended' ? (note || 'Suspendue par la modération') : note, status, l.id));
   if (status !== l.status) await notify(l.user_id, 'moderation', status === 'suspended' ? 'Annonce suspendue par la modération' : 'Statut de votre annonce mis à jour', `${l.title}${note ? ' – ' + note : ''}`, '/espace-pro?tab=annonces');
   await audit(a.id, 'listing-moderation', { id: l.id, status });
@@ -1118,7 +1118,7 @@ route('PUT', '/api/admin/provinces/:id', async (req, res, { id }) => {
 route('GET', '/api/admin/users', async (req) => {
   await requireUser(req, 'admin');
   const params = []; let where = '';
-  if (req.query.q) { where = 'WHERE u.email LIKE ? OR u.name LIKE ?'; params.push(`%${req.query.q}%`, `%${req.query.q}%`); }
+  if (req.query.q) { where = 'WHERE u.email ILIKE ? OR u.name ILIKE ?'; params.push(`%${req.query.q}%`, `%${req.query.q}%`); }
   return { items: (await db.prepare(`SELECT u.id, u.email, u.role, u.name, u.status, u.created_at, u.last_login, (SELECT COUNT(*) FROM children ch WHERE ch.user_id = u.id) children FROM users u ${where} ORDER BY u.created_at DESC LIMIT 500`).all(...params)) };
 });
 route('PUT', '/api/admin/users/:id', async (req, res, { id }) => {
@@ -1179,20 +1179,20 @@ route('DELETE', '/api/admin/demo', async (req) => {
 
 // Expiration automatique des annonces
 async function expireListings() {
-  const rows = (await db.prepare("SELECT l.id, l.title, l.slug, pr.user_id FROM listings l JOIN profiles pr ON pr.id = l.profile_id WHERE l.status = 'published' AND l.expires_at IS NOT NULL AND l.expires_at < date('now')").all());
+  const rows = (await db.prepare("SELECT l.id, l.title, l.slug, pr.user_id FROM listings l JOIN profiles pr ON pr.id = l.profile_id WHERE l.status = 'published' AND l.expires_at IS NOT NULL AND l.expires_at < gs_date('now')").all());
   for (const r of rows) {
-    (await db.prepare("UPDATE listings SET status = 'expired', updated_at = datetime('now') WHERE id = ?").run(r.id));
+    (await db.prepare("UPDATE listings SET status = 'expired', updated_at = gs_datetime('now') WHERE id = ?").run(r.id));
     await notify(r.user_id, 'expiration', 'Annonce expirée', `${r.title} n'est plus visible. Vous pouvez la renouveler depuis votre tableau de bord.`, '/espace-pro?tab=annonces');
     for (const f of (await db.prepare('SELECT user_id FROM favorites WHERE listing_id = ?').all(r.id))) await notify(f.user_id, 'favori', 'Annonce favorite expirée', r.title, null);
   }
   // Rappel : date limite d'inscription dans 3 jours pour les favoris
   const soon = (await db.prepare(`SELECT l.id, l.title, l.slug, l.reg_end, f.user_id FROM listings l JOIN favorites f ON f.listing_id = l.id
-    WHERE l.status = 'published' AND l.reg_end = date('now', '+3 days')`).all());
+    WHERE l.status = 'published' AND l.reg_end = gs_date('now', '+3 days')`).all());
   for (const s of soon) {
     const exists = (await db.prepare("SELECT 1 FROM notifications WHERE user_id = ? AND type = 'deadline' AND link = ?").get(s.user_id, `/annonce/${s.id}-${s.slug}`));
     if (!exists) await notify(s.user_id, 'deadline', "Date limite d'inscription proche", `${s.title} : inscriptions jusqu'au ${s.reg_end}`, `/annonce/${s.id}-${s.slug}`);
   }
-  (await db.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run());
+  (await db.prepare("DELETE FROM sessions WHERE expires_at < gs_datetime('now')").run());
   return rows.length;
 }
 

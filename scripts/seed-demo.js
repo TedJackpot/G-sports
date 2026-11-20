@@ -35,7 +35,7 @@ async function demoListing(profileId, d) {
   const l = { ...base, ...d };
   l.expires_at = l.end_date || addDays(today(), 120);
   const cols = Object.keys(l);
-  const r = (await db.prepare(`INSERT INTO listings (profile_id, slug, status, published_at, is_demo, ${cols.join(', ')}) VALUES (?, ?, 'published', datetime('now'), 1, ${cols.map(() => '?').join(', ')})`)
+  const r = (await db.prepare(`INSERT INTO listings (profile_id, slug, status, published_at, is_demo, ${cols.join(', ')}) VALUES (?, ?, 'published', gs_datetime('now'), 1, ${cols.map(() => '?').join(', ')})`)
     .run(profileId, slugify(l.title), ...cols.map(c => l[c])));
   await api.refreshListingSearch(Number(r.lastInsertRowid));
 }

@@ -4,7 +4,7 @@ Plateforme nationale **gratuite** de découverte des sports et activités extras
 
 ## Démarrage rapide
 
-Prérequis : **Node.js 22.9 ou plus récent**. Deux dépendances seulement : `@libsql/client` (base SQLite locale ou Turso) et `@vercel/blob` (photos en production).
+Prérequis : **Node.js 22.9 ou plus récent**. Dépendances : `postgres` (Supabase en production), `@electric-sql/pglite` (PostgreSQL embarqué pour le développement et les tests) et `@vercel/blob` (photos en production).
 
 ```bash
 npm install
@@ -25,7 +25,7 @@ En local, un compte administrateur de développement a été créé ; ses identi
 |---|---|---|
 | Serveur | Node.js `http` natif (`server/index.js`), exposé sur Vercel via `api/index.js` | Léger, coût nul, même code en local et en production |
 | API | REST JSON (`server/api.js`) | Rôles visiteur / parent / professionnel / administrateur appliqués côté serveur |
-| Base | libSQL : fichier SQLite en local, **Turso** en production | Même SQL partout ; sauvegardes locales quotidiennes, sauvegardes gérées par Turso en production |
+| Base | **PostgreSQL** : Supabase (projet LINGORA, schéma séparé `gsports`) en production, PGlite en local | Même SQL partout ; sauvegardes gérées par Supabase |
 | Photos | Disque en local, **Vercel Blob** en production | Stockage durable compatible serverless |
 | Front | SPA en JavaScript natif (modules ES), sans build | Léger, rapide sur connexion limitée |
 | SEO | Rendu serveur des balises `title`, description, Open Graph, JSON-LD (Event, SportsOrganization, BreadcrumbList), `sitemap.xml`, `robots.txt` | Pages indexables ; pages vides en `noindex` |
@@ -61,7 +61,7 @@ data/     gsports.db  uploads/  backups/  logs/  (non versionné)
 - La validation d'un compte n'est jamais présentée comme une certification ; chaque fiche indique que les informations sont déclarées par le professionnel.
 
 
-## Déploiement sur Vercel (Turso + Vercel Blob)
+## Déploiement sur Vercel (Supabase + Vercel Blob)
 
 Le dépôt est prêt pour Vercel : `vercel.json` sert `public/` en statique (CDN), envoie toutes les autres URL vers la fonction `api/index.js` (région Paris `cdg1`, la plus proche du Gabon) et programme une tâche quotidienne `/api/cron/daily` qui retire les annonces expirées et envoie les rappels.
 
@@ -69,20 +69,20 @@ Variables d'environnement du projet Vercel (jamais exposées au navigateur) :
 
 | Variable | Rôle |
 |---|---|
-| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | Base Turso (ajoutées automatiquement par l'intégration Turso de la Marketplace Vercel) |
+| `DATABASE_URL` | Connexion PostgreSQL Supabase via le pooler (port 6543) avec le rôle dédié `gsports_app`, limité au schéma `gsports` |
 | `BLOB_READ_WRITE_TOKEN` | Stockage des photos (ajouté automatiquement en reliant un Blob store au projet) |
 | `SITE_URL` | Adresse publique, ex. `https://g-sports.vercel.app` (sitemap, Open Graph) |
 | `CRON_SECRET` | Secret aléatoire protégeant la tâche quotidienne |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Crée le premier administrateur au démarrage si aucun n'existe (à retirer ensuite) |
 | `TRUST_PROXY=1` | Lit l'adresse IP réelle pour la limitation des tentatives |
 
-Au premier démarrage, la base Turso est créée et remplie automatiquement (provinces, villes, catégories, modèles). Les exemples fictifs ne sont **pas** ajoutés en production ; pour les ajouter : `TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run seed-demo`.
+Le schéma est créé par la migration Supabase `gsports_schema_init` (fichier de référence : `server/schema.sql`). Au premier démarrage, les données de référence sont ajoutées automatiquement (provinces, villes, catégories, modèles). Les exemples fictifs ne sont **pas** ajoutés en production ; pour les ajouter : `DATABASE_URL=… npm run seed-demo`.
 
 Remarques serverless : la limitation des tentatives est tenue en mémoire par instance (protection de base) ; les photos envoyées sont limitées à ~4 Mo par requête (elles sont compressées sur l'appareil avant l'envoi).
 
 ## Autre hébergement (serveur Node classique)
 
-1. Héberger sur tout service qui exécute Node.js ≥ 22.9 avec un **disque persistant** (la base SQLite et les photos sont dans `data/`).
+1. Héberger sur tout service qui exécute Node.js ≥ 22.9, avec `DATABASE_URL` pointant vers PostgreSQL (sinon base PGlite locale dans `data/pg`).
 2. Définir les variables de `.env.example` (`NODE_ENV=production`, `SITE_URL`, `TRUST_PROXY=1` derrière un proxy) ; `npm start` charge `.env` s'il existe.
 3. Servir en **HTTPS** (obligatoire pour l'installation PWA et les cookies sécurisés).
 4. Créer l'administrateur, puis supprimer les exemples fictifs dès les premières vraies annonces.

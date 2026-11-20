@@ -16,7 +16,8 @@
     "test": "node --test test/"
   },
   "dependencies": {
-    "@libsql/client": "^0.18.0",
-    "@vercel/blob": "^2.9.0"
+    "@electric-sql/pglite": "^0.5.17",
+    "@vercel/blob": "^2.9.0",
+    "postgres": "^4.1.1"
   }
 }

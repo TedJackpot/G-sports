@@ -302,7 +302,7 @@ function setProp(obj, key, value) {
 
 // ---------- Tâches périodiques : expiration, sauvegardes ----------
 async function backup() {
-  if (IS_REMOTE) return; // Turso gère ses propres sauvegardes
+  return; // PostgreSQL : sauvegardes gérées par Supabase (production) ; base locale de développement non sauvegardée
   try {
     fs.mkdirSync(BACKUP_DIR, { recursive: true });
     const file = path.join(BACKUP_DIR, `gsports-${today()}.db`);

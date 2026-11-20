@@ -8,7 +8,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gsports-test-'));
-process.env.GSPORTS_DB = path.join(TMP, 'test.db');
+process.env.GSPORTS_DB = 'memory://';
 process.env.GSPORTS_UPLOADS = path.join(TMP, 'uploads');
 process.env.BACKUPS = '0';
 const { server } = require('../server/index.js');
