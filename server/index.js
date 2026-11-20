@@ -121,6 +121,7 @@ const STATIC_PAGES = {
   '/stages': ['Stages sportifs et activités de vacances au Gabon', 'Stages intensifs, journées découverte et programmes pendant les vacances scolaires.'],
   '/camps': ['Camps de vacances pour enfants et ados au Gabon', 'Camps sportifs, nature, culturels et multisports : dates, tarifs, encadrement.'],
   '/calendrier': ['Calendrier des inscriptions, stages et camps', 'Toutes les dates d\'inscription, de stages et de camps à venir au Gabon.'],
+  '/annonces': ['Annonces : inscriptions, stages, camps et séances d’essai | G-Sports', 'Toutes les annonces des clubs et coachs au Gabon : inscriptions ouvertes, stages, camps, portes ouvertes, séances d’essai.'],
   '/carte': ['Carte des activités au Gabon', 'Explorez les activités par province et par ville sur la carte du Gabon.'],
   '/publier': ['Publier une annonce – G-Sports', 'Clubs, coachs, associations : présentez vos activités, tarifs et modalités d’inscription aux familles.'],
   '/connexion': ['Connexion – G-Sports', DEFAULT_DESC], '/inscription': ['Créer un compte parent – G-Sports', DEFAULT_DESC],
