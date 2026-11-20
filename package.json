@@ -1,0 +1,22 @@
+{
+  "name": "g-sports-gabon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "G-Sports Gabon – plateforme nationale gratuite de découverte des sports et activités extrascolaires pour les jeunes",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "dev": "node --env-file-if-exists=.env --watch server/index.js",
+    "create-admin": "node scripts/create-admin.js",
+    "seed-demo": "node scripts/seed-demo.js",
+    "remove-demo": "node scripts/seed-demo.js --remove",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "@vercel/blob": "^2.9.0"
+  }
+}
