@@ -5,3 +5,8 @@ data/
 *.log
 .vercel/
 .claude/
+
+.vercel
+.env*
+
+!.env.example
