@@ -1,5 +1,5 @@
 /* G-Sports Gabon – Service Worker : cache intelligent pour connexions limitées */
-const VERSION = 'gs-v1.5.0';
+const VERSION = 'gs-v1.6.0';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const IMAGES = `${VERSION}-images`;

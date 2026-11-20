@@ -304,7 +304,7 @@ export function listingCard(l) {
   else if (l.start_date) chipsMini.push(fmtDate(l.start_date) + (l.end_date && l.end_date !== l.start_date ? ' → ' + fmtDate(l.end_date) : ''));
   chipsMini.push(l.levels.map((x) => LEVEL_LABELS[x]).join(', '));
   return html`<a class="lcard fade-in" href="${l.url}" style="--c:${v.color}">
-    <div class="lcard-visual ${l.cover ? 'photo' : 'picto-box'}">${v.html}${l.cover && l.cover_is_generic ? html`<span class="illus">Illustration</span>` : ''}</div>
+    <div class="lcard-visual ${l.cover ? 'photo' : 'picto-box'}">${v.html}${l.cover && l.cover_is_generic ? html`<span class="illus">Illustration</span>` : ''}<span class="age-circle" title="Âge">${l.age_max >= 99 ? l.age_min + '+' : l.age_min + '–' + l.age_max}<small>ans</small></span></div>
     <div class="lcard-body">
       <div class="lcard-top"><span class="tag">${l.cat_name || l.kind_label}</span><span class="kind">${l.kind_label}</span>${l.is_demo ? html`<span class="badge demo">Exemple fictif</span>` : ''}${l.badges.filter((b) => ['complet', 'limitees', 'nouveau', 'gratuit'].includes(b.k)).map((b) => html`<span class="badge ${b.k}">${b.t}</span>`)}</div>
       <h3>${l.title}</h3>

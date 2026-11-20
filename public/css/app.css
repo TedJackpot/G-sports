@@ -715,3 +715,76 @@ body { background: #fff; }
 .wordmark b { -webkit-text-fill-color: #F5B300; text-shadow: 0 0 10px rgba(245,179,0,.55); -webkit-text-stroke: 1.5px #B37E00; }
 .site-footer .wordmark b { -webkit-text-stroke: 0; }
 @media (max-width: 899px) { .age-badge, .count-badge { width: 36px; height: 36px; font-size: .82rem; border-width: 2px; } .age-badges { gap: 4px; } }
+
+/* =====================================================================
+   Intérieur du site au rendu « menthe & or »
+   ===================================================================== */
+/* Cartes d'annonces verticales : photo en haut, pastille d'âge, titre, tarif */
+.entries, .grid.cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 20px; }
+.lcard { grid-template-columns: 1fr; border-radius: 18px; border: 0; box-shadow: 0 10px 26px rgba(29,95,102,.14); }
+.lcard:hover { transform: translateY(-5px); box-shadow: 0 18px 36px rgba(29,95,102,.22); }
+.lcard-visual { min-height: 0; aspect-ratio: 16 / 10; }
+.lcard-visual.picto-box { background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--c) 70%, #fff), var(--c)); }
+.lcard-visual .picto { width: 84px; height: 84px; filter: drop-shadow(0 4px 10px rgba(0,0,0,.18)); }
+.lcard-visual.photo::after { display: none; }
+.age-circle { position: absolute; left: 12px; bottom: -22px; z-index: 2; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(180deg, #E2B850, #C3901F); color: #fff; border: 3px solid #fff; box-shadow: 0 6px 14px rgba(0,0,0,.2); display: grid; place-items: center; align-content: center; font-family: var(--serif); font-weight: 800; font-size: 1rem; line-height: .9; text-align: center; }
+.age-circle small { display: block; font-size: .62rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.lcard-visual .illus { left: auto; right: 8px; bottom: 8px; }
+.lcard-body { padding: 30px 16px 16px; }
+.lcard-top .tag { border-radius: 30px; padding: 2px 10px; }
+.lcard h3 { color: var(--teal); font-size: 1.55rem; }
+.lcard .mini li { background: var(--mint-2); color: var(--teal); }
+.lcard-foot { border-top: 2px dotted var(--mint); }
+.lcard .price { color: var(--gold); background: linear-gradient(180deg, #D9AE3F, #B9861E); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.lcard-fav { right: 12px; top: 12px; }
+.lcard-fav .fav-btn { background: rgba(255,255,255,.95); border: 0; box-shadow: 0 4px 10px rgba(0,0,0,.18); }
+/* Vue liste : cartes horizontales */
+.list-view .lcard { grid-template-columns: 170px 1fr; }
+.list-view .lcard-visual { aspect-ratio: auto; min-height: 170px; }
+.list-view .age-circle { bottom: 10px; }
+.list-view .lcard-body { padding: 14px 52px 14px 16px; }
+@media (max-width: 520px) { .list-view .lcard { grid-template-columns: 120px 1fr; } .list-view .lcard-visual { min-height: 140px; } }
+
+/* En-têtes de pages : fond menthe ondulé, titre bleu-vert, photo encadrée */
+.page-head { background:
+    radial-gradient(55% 80% at 100% 0%, rgba(255,255,255,.7) 0, rgba(255,255,255,.7) 50%, transparent 51%),
+    radial-gradient(40% 70% at 0% 100%, rgba(255,255,255,.55) 0, rgba(255,255,255,.55) 50%, transparent 51%),
+    var(--mint); color: var(--ink); padding: 34px 0 30px; }
+.page-head h1 { color: var(--teal); }
+.page-head p { color: var(--ink-soft); }
+.page-head .crumbs, .page-head .crumbs a { color: var(--teal); }
+.page-head .chip { color: var(--teal) !important; border-color: var(--teal); background: #fff; }
+.page-head .chip.on { background: var(--teal); border-color: var(--teal); color: #fff !important; }
+.head-photo { border: 6px solid #fff; box-shadow: 0 12px 30px rgba(29,95,102,.25); border-radius: 20px; transform: translateY(-50%) rotate(1.5deg); }
+.head-photo.picto-head { border-color: #fff; }
+@media (max-width: 759px) { .head-photo { transform: rotate(-1deg); } }
+
+/* Fiche activité : bandeau menthe, vignette blanche, titre bleu-vert */
+.doc-head { background:
+    radial-gradient(50% 90% at 100% 0%, rgba(255,255,255,.7) 0, rgba(255,255,255,.7) 50%, transparent 51%),
+    var(--mint); color: var(--ink); }
+.doc-head h1 { color: var(--teal); }
+.doc-head .kicker { color: var(--gold); opacity: 1; }
+.doc-head .crumbs, .doc-head .crumbs a { color: var(--teal); }
+.doc-head .byline { color: var(--ink-soft); }
+.doc-head .byline a { color: var(--teal); }
+.doc-head .icon-btn, .doc-head .fav-btn { box-shadow: 0 4px 10px rgba(0,0,0,.12); }
+.doc-picto { background: var(--c, var(--teal)); border: 6px solid #fff; box-shadow: 0 12px 28px rgba(29,95,102,.25); border-radius: 22px; }
+.doc-head-row .avatar { background: var(--teal); color: #fff; border: 6px solid #fff; box-shadow: 0 12px 28px rgba(29,95,102,.25); }
+.doc-sec h2 { color: var(--teal); }
+.facts dt { color: var(--gold); }
+.price-line b, .price-big { color: var(--gold); background: linear-gradient(180deg, #D9AE3F, #B9861E); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.contact-card { background: #fff; }
+.contact-card .kicker { color: var(--teal); }
+.gallery img { border-radius: 16px; box-shadow: 0 8px 20px rgba(29,95,102,.14); }
+
+/* Divers : filtres, formulaires, espaces */
+.filters { background: #fff; }
+.toolbar { border-bottom-color: var(--mint); }
+.toolbar .count { color: var(--teal); }
+.chip.on { background: var(--teal); border-color: var(--teal); }
+.side-tabs a.on { color: var(--teal); border-color: var(--gold-2); }
+.kpi.accent b { color: var(--teal); }
+fieldset legend { color: var(--teal); }
+.auth-wrap { background: radial-gradient(60% 50% at 50% 0%, #fff 0, #fff 50%, transparent 51%), var(--mint); }
+.empty { border-color: var(--mint); }
