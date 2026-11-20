@@ -29,24 +29,31 @@ const withReturning = (sql) => (/^\s*insert\s/i.test(sql) && !/\breturning\b/i.t
 let exec; // (sql, params) => { rows, count }
 let execMulti; // (sql) => void
 let transaction; // (fn(execTx)) => résultat, sur une seule connexion
-if (IS_REMOTE) {
-  const pgmod = require('postgres'); const postgres = pgmod.default || pgmod;
-  const num = { to: 20, from: [20, 1700], serialize: (x) => String(x), parse: (x) => Number(x) };
-  const sql = postgres(DATABASE_URL, { prepare: false, max: 3, idle_timeout: 20, connect_timeout: 15, types: { num }, onnotice: () => {} });
-  const wrap = (s) => async (text, params) => { const r = await s.unsafe(text, params); return { rows: [...r], count: r.count }; };
-  exec = wrap(sql);
-  execMulti = async (text) => { await sql.unsafe(text); };
-  transaction = (fn) => sql.begin((t) => fn(wrap(t)));
-} else {
-  const { PGlite } = require('@electric-sql/pglite');
-  if (!DB_PATH.startsWith('memory://')) fs.mkdirSync(DB_PATH, { recursive: true });
-  const pg = new PGlite(DB_PATH);
-  const parsers = { 20: (x) => Number(x), 1700: (x) => Number(x) };
-  const wrap = (q) => async (text, params) => { const r = await q.query(text, params, { parsers }); return { rows: r.rows, count: r.affectedRows ?? r.rows.length }; };
-  exec = wrap(pg);
-  execMulti = async (text) => { await pg.exec(text); };
-  transaction = (fn) => pg.transaction((t) => fn(wrap(t)));
+// Modules ESM chargés par import() dynamique (compatible avec tous les environnements Node)
+let driver = null;
+function getDriver() {
+  if (driver) return driver;
+  driver = (async () => {
+    if (IS_REMOTE) {
+      const m = await import('postgres');
+      const postgres = m.default || m;
+      const num = { to: 20, from: [20, 1700], serialize: (x) => String(x), parse: (x) => Number(x) };
+      const sql = postgres(DATABASE_URL, { prepare: false, max: 3, idle_timeout: 20, connect_timeout: 15, types: { num }, onnotice: () => {} });
+      const wrap = (q) => async (text, params) => { const r = await q.unsafe(text, params); return { rows: [...r], count: r.count }; };
+      return { exec: wrap(sql), execMulti: async (text) => { await sql.unsafe(text); }, transaction: (fn) => sql.begin((t) => fn(wrap(t))) };
+    }
+    const { PGlite } = await import('@electric-sql/pglite');
+    if (!DB_PATH.startsWith('memory://')) fs.mkdirSync(DB_PATH, { recursive: true });
+    const pg = new PGlite(DB_PATH);
+    const parsers = { 20: (x) => Number(x), 1700: (x) => Number(x) };
+    const wrap = (q) => async (text, params) => { const r = await q.query(text, params, { parsers }); return { rows: r.rows, count: r.affectedRows ?? r.rows.length }; };
+    return { exec: wrap(pg), execMulti: async (text) => { await pg.exec(text); }, transaction: (fn) => pg.transaction((t) => fn(wrap(t))) };
+  })();
+  return driver;
 }
+exec = async (text, params) => (await getDriver()).exec(text, params);
+execMulti = async (text) => (await getDriver()).execMulti(text);
+transaction = async (fn) => (await getDriver()).transaction(fn);
 
 let ready = null;
 const db = {
