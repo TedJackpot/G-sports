@@ -38,9 +38,18 @@ function getDriver() {
       const m = await import('postgres');
       const postgres = m.default || m;
       const num = { to: 20, from: [20, 1700], serialize: (x) => String(x), parse: (x) => Number(x) };
-      const sql = postgres(DATABASE_URL, { prepare: false, max: 3, idle_timeout: 20, connect_timeout: 15, types: { num }, onnotice: () => {} });
+      const sql = postgres(DATABASE_URL, { prepare: false, max: 1, idle_timeout: 20, connect_timeout: 15, types: { num }, onnotice: () => {} });
       const wrap = (q) => async (text, params) => { const r = await q.unsafe(text, params); return { rows: [...r], count: r.count }; };
-      return { exec: wrap(sql), execMulti: async (text) => { await sql.unsafe(text); }, transaction: (fn) => sql.begin((t) => fn(wrap(t))) };
+      // Le relais de connexion Supabase (mode transaction) ne supporte pas plusieurs requêtes envoyées
+      // en même temps sur une connexion : on les exécute strictement l'une après l'autre.
+      let chain = Promise.resolve();
+      const serial = (fn) => { const p = chain.then(fn, fn); chain = p.then(() => {}, () => {}); return p; };
+      const run = wrap(sql);
+      return {
+        exec: (text, params) => serial(() => run(text, params)),
+        execMulti: (text) => serial(() => sql.unsafe(text)),
+        transaction: (fn) => serial(() => sql.begin((t) => fn(wrap(t)))),
+      };
     }
     const { PGlite } = await import('@electric-sql/pglite');
     if (!DB_PATH.startsWith('memory://')) fs.mkdirSync(DB_PATH, { recursive: true });
