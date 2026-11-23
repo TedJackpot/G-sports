@@ -12,9 +12,9 @@ const SESSION_DAYS = 30;
 const LISTING_TTL_DAYS = 120; // durée de vie d'une annonce sans date de fin, renouvelable
 
 const KINDS = {
-  activite: 'Activité régulière', inscriptions: 'Inscriptions saison', recrutement: 'Recrutement de jeunes',
+  activite: 'Activité régulière', inscriptions: 'Inscriptions saison', recrutement: 'Recrutement de membres',
   stage: 'Stage', camp: 'Camp', decouverte: 'Journée découverte', 'portes-ouvertes': 'Portes ouvertes',
-  essai: "Séance d'essai", tournoi: 'Tournoi', programme: 'Programme ados', evenement: 'Événement',
+  essai: "Séance d'essai", tournoi: 'Tournoi', programme: 'Programme ados', adultes: 'Programme adultes', evenement: 'Événement',
 };
 const PROFILE_TYPES = {
   club: 'Club sportif', association: 'Association', gymnase: 'Gymnase', salle: 'Salle de sport',
@@ -25,7 +25,7 @@ const LEVELS = ['debutant', 'intermediaire', 'avance'];
 const DAYS = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
 const REQUEST_TYPES = { info: "Demande d'informations", essai: 'Séance découverte', rdv: 'Rendez-vous', inscription: "Demande d'inscription" };
 const REPORT_REASONS = ['Information incorrecte', 'Activité inexistante', 'Tarif incorrect', 'Contenu inapproprié', "Suspicion d'arnaque", 'Problème de sécurité', 'Autre'];
-const AGE_GROUPS = { '5-6': [5, 6], '7-9': [7, 9], '10-12': [10, 12], '13-15': [13, 15], '16-18': [16, 18], '18+': [18, 99] };
+const AGE_GROUPS = { '5-6': [5, 6], '7-9': [7, 9], '10-12': [10, 12], '13-15': [13, 15], '16-18': [16, 18], adultes: [18, 59], seniors: [60, 99], '18+': [18, 99] };
 
 // ---------- Limitation de débit (anti-abus des formulaires) ----------
 const buckets = new Map();
@@ -600,7 +600,7 @@ route('POST', '/api/contact-requests', async (req) => {
   const u = await getUser(req);
   if (u && u.role !== 'parent') throw new HttpError(403, 'Seuls les parents ou responsables légaux peuvent envoyer une demande.');
   if (!V.bool(b.consent)) throw new HttpError(400, 'Merci d\'accepter le partage de vos coordonnées avec le professionnel.');
-  if (!V.bool(b.is_guardian)) throw new HttpError(400, 'Les demandes sont réservées aux parents ou responsables légaux.');
+  if (!V.bool(b.is_guardian)) throw new HttpError(400, 'Merci de confirmer que vous êtes le participant majeur, ou le parent / responsable légal du participant mineur.');
   let profile, listing = null;
   if (b.listing_id) {
     listing = (await db.prepare(`${LISTING_SELECT} WHERE l.id = ? AND ${PUBLIC_WHERE}`).get(Number(b.listing_id)));
@@ -616,7 +616,7 @@ route('POST', '/api/contact-requests', async (req) => {
     parent_name: V.str(b.parent_name, { required: true, min: 2, max: 100, field: 'nom' }),
     email: V.email(b.email, { required: true }), phone: V.phone(b.phone),
     city: V.str(b.city, { max: 80, field: 'ville' }), activity: V.str(b.activity, { max: 120, field: 'activité' }) || listing?.title || null,
-    child_age: V.int(b.child_age, { min: 3, max: 25, field: "âge de l'enfant" }),
+    child_age: V.int(b.child_age, { min: 3, max: 99, field: 'âge du participant' }),
     message: V.str(b.message, { required: true, min: 10, max: 2000, field: 'message' }),
     preferred_date: V.str(b.preferred_date, { max: 100, field: 'date souhaitée' }),
   };
@@ -800,7 +800,7 @@ route('POST', '/api/me/alerts', async (req) => {
   const city = b.city_id ? (await db.prepare('SELECT id FROM cities WHERE id = ?').get(Number(b.city_id))) : null;
   const group = b.group_id ? (await db.prepare('SELECT id FROM category_groups WHERE id = ?').get(Number(b.group_id))) : null;
   (await db.prepare('INSERT INTO alerts (user_id, city_id, group_id, age, kinds) VALUES (?, ?, ?, ?, ?)').run(u.id, city?.id || null, group?.id || null,
-    V.int(b.age, { min: 3, max: 25, field: 'âge' }), V.list(b.kinds, Object.keys(KINDS)).join(',')));
+    V.int(b.age, { min: 3, max: 99, field: 'âge' }), V.list(b.kinds, Object.keys(KINDS)).join(',')));
   return { ok: true };
 });
 route('DELETE', '/api/me/alerts/:id', async (req, res, { id }) => { (await db.prepare('DELETE FROM alerts WHERE id = ? AND user_id = ?').run(Number(id), (await requireUser(req)).id)); return { ok: true }; });

@@ -166,7 +166,7 @@ addRoute('/espace-parent', async (ctx) => {
       <form class="card pad form" data-form="alert" style="margin-top:16px"><h3>Nouvelle alerte</h3>
         <div class="cols three"><label class="lbl">Ville${citySelect('city_id', state.me.city_id, { placeholder: 'Tout le Gabon', byId: true })}</label>
         <label class="lbl">Famille d'activités<select class="input" name="group_id"><option value="">Toutes</option>${state.meta.groups.map((g) => html`<option value="${g.id}">${g.name}</option>`)}</select></label>
-        <label class="lbl">Âge de l'enfant<input class="input" type="number" name="age" min="3" max="25" inputmode="numeric"></label></div>
+        <label class="lbl">Âge du participant<input class="input" type="number" name="age" min="3" max="99" inputmode="numeric"></label></div>
         <div class="lbl">Types d'annonces <span class="hint">(aucun = tous)</span><div class="pill-checks">${[['activite', 'Activités'], ['stage', 'Stages'], ['camp', 'Camps'], ['inscriptions', 'Ouvertures d\'inscriptions'], ['decouverte', 'Journées découverte']].map(([k, l]) => html`<label><input type="checkbox" data-multi name="kinds" value="${k}"><span>${l}</span></label>`)}</div></div>
         <p class="form-error" role="alert"></p><button class="btn btn-navy" type="submit">Créer l'alerte</button></form>`;
   } else if (tab === 'demandes') {
@@ -251,7 +251,7 @@ addRoute('/espace-pro', async (ctx) => {
         <div class="info-list" style="margin-top:8px">
           <div><span class="k">Parent</span><span>${q.parent_name}</span></div><div><span class="k">Contact</span><span><a href="mailto:${q.email}" data-external>${q.email}</a>${q.phone ? html` · <a href="tel:${q.phone.replace(/\s/g, '')}" data-external>${q.phone}</a>` : ''}</span></div>
           ${q.city ? html`<div><span class="k">Ville</span><span>${q.city}</span></div>` : ''}<div><span class="k">Activité</span><span>${q.listing_url ? html`<a href="${q.listing_url}">${q.ltitle}</a>` : q.activity || '—'}</span></div>
-          ${q.child_age ? html`<div><span class="k">Âge de l'enfant</span><span>${q.child_age} ans</span></div>` : ''}${q.preferred_date ? html`<div><span class="k">Disponibilités</span><span>${q.preferred_date}</span></div>` : ''}
+          ${q.child_age ? html`<div><span class="k">Âge du participant</span><span>${q.child_age} ans</span></div>` : ''}${q.preferred_date ? html`<div><span class="k">Disponibilités</span><span>${q.preferred_date}</span></div>` : ''}
           <div><span class="k">Message</span><span class="prose">${q.message}</span></div>${q.reply ? html`<div><span class="k">Votre réponse</span><span class="prose">${q.reply}</span></div>` : ''}</div>
         <div class="row" style="margin-top:10px">${q.phone ? html`<a class="btn btn-wa btn-sm" href="https://wa.me/${q.phone.replace(/[^0-9]/g, '')}" target="_blank" rel="noopener" data-external>${icon('wa', 16)} WhatsApp</a>` : ''}
           <button class="btn btn-navy btn-sm" data-action="reply" data-id="${q.id}">Répondre</button>
@@ -419,16 +419,16 @@ addRoute('/espace-pro/annonce/:id', async (ctx) => {
     <form class="form" data-form="listing" data-id="${isNew ? '' : l.id}">
       <fieldset><legend>1. L'annonce</legend><div class="form">
         <label class="lbl"><span class="req">Type d'annonce</span><select class="input" name="kind">${kinds.map(([k, lab]) => html`<option value="${k}" ${l.kind === k ? 'selected' : ''}>${lab}</option>`)}</select></label>
-        <label class="lbl"><span class="req">Titre</span><input class="input" name="title" value="${l.title}" required minlength="5" maxlength="120" placeholder="Ex. : Football jeunes – Initiation et perfectionnement"></label>
+        <label class="lbl"><span class="req">Titre</span><input class="input" name="title" value="${l.title}" required minlength="5" maxlength="120" placeholder="Ex. : Football U12 – Initiation, ou Remise en forme adultes"></label>
         <div class="cols"><label class="lbl"><span class="req">Catégorie</span>${categorySelect('category_id', l.category_id, { placeholder: 'Choisir…', byId: true, required: true, groupsSelectable: false })}</label>
         <label class="lbl">Activité précise<input class="input" name="activity" value="${v(l.activity)}" maxlength="80" placeholder="Ex. : Football à 7"></label></div>
         <label class="lbl"><span class="req">Description détaillée</span><textarea class="input" name="description" required minlength="30" maxlength="6000" rows="7">${l.description}</textarea></label>
         <label class="lbl">Objectifs / programme <span class="hint">(un par ligne)</span><textarea class="input" name="objectives" rows="5">${(l.objectives || []).join('\n')}</textarea></label>
-        <label class="lbl">Ce que l'enfant va apprendre<textarea class="input" name="learn" maxlength="2000">${v(l.learn)}</textarea></label>
+        <label class="lbl">Ce que le participant va apprendre<textarea class="input" name="learn" maxlength="2000">${v(l.learn)}</textarea></label>
       </div></fieldset>
       <fieldset><legend>2. Public</legend><div class="form">
         <div class="cols three"><label class="lbl"><span class="req">Âge minimum</span><input class="input" type="number" name="age_min" min="3" max="99" value="${v(l.age_min)}" required></label>
-        <label class="lbl"><span class="req">Âge maximum</span><input class="input" type="number" name="age_max" min="3" max="99" value="${v(l.age_max)}" required></label>
+        <label class="lbl"><span class="req">Âge maximum</span><span class="hint">99 = sans limite (adultes)</span><input class="input" type="number" name="age_max" min="3" max="99" value="${v(l.age_max)}" required></label>
         <label class="lbl">Public<select class="input" name="gender">${[['mixte', 'Mixte'], ['filles', 'Filles'], ['garcons', 'Garçons']].map(([k, lab]) => html`<option value="${k}" ${l.gender === k ? 'selected' : ''}>${lab}</option>`)}</select></label></div>
         <div class="lbl">Niveau requis<div class="pill-checks">${Object.entries(LEVEL_LABELS).map(([k, lab]) => html`<label><input type="checkbox" data-multi name="levels" value="${k}" ${l.levels.includes(k) ? 'checked' : ''}><span>${lab}</span></label>`)}</div></div>
         <label class="check"><input type="checkbox" name="beginners" ${l.beginners ? 'checked' : ''}> Débutants acceptés</label>

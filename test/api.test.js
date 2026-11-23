@@ -229,3 +229,17 @@ test('suppression de compte parent', async () => {
   assert.equal((await db.prepare("SELECT COUNT(*) n FROM children").get()).n, 0, 'profils enfants effacés');
   assert.equal((await parent.get('/api/me/children')).status, 401);
 });
+
+test('activités pour adultes : tranche Adultes, âge du participant majeur', async () => {
+  const club = new Client();
+  await club.post('/api/auth/register-pro', { type: 'salle', name: 'Salle Forme Test', main_activity: 'Fitness', city_id: (await city('Libreville')).id, manager_name: 'Gérant', email: 'forme@test.ga', phone: '011223344', password: 'FormePass123', accept: true, accept_minors: true });
+  const p = (await admin.get('/api/admin/profiles?verification=pending')).data.items.find((x) => x.name === 'Salle Forme Test');
+  await admin.put(`/api/admin/profiles/${p.id}`, { verification: 'approved' });
+  const r = await club.post('/api/pro/listings', { kind: 'adultes', title: 'Remise en forme adultes', category_id: await cat('Remise en forme'), city_id: (await city('Libreville')).id, age_min: 18, age_max: 99, description: 'Cardio et renforcement musculaire pour adultes, tous niveaux, encadré par un coach.', reg_end: '2099-01-01' });
+  assert.equal(r.status, 200);
+  assert.equal((await visitor.get('/api/listings?agegroup=adultes')).data.items.some((l) => l.id === r.data.id), true);
+  assert.equal((await visitor.get('/api/listings?agegroup=seniors')).data.items.some((l) => l.id === r.data.id), true);
+  assert.equal((await visitor.get('/api/listings?agegroup=10-12')).data.items.some((l) => l.id === r.data.id), false);
+  const c = await visitor.post('/api/contact-requests', { listing_id: r.data.id, type: 'inscription', parent_name: 'Jean Adulte', email: 'jean@test.ga', child_age: 42, message: 'Je souhaite m\'inscrire aux séances.', consent: true, is_guardian: true });
+  assert.equal(c.status, 200);
+});

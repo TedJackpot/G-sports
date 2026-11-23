@@ -49,14 +49,14 @@ const CAT = {
   randonnee: ['nature', 'leaf'], 'camping-encadre': ['camp', 'leaf'], 'decouverte-de-la-nature': ['nature', 'leaf'], 'camps-de-vacances': ['camp', 'orange'],
   'activites-de-plage': ['volley', 'turq'], excursions: ['nature', 'green'], 'initiation-survie-encadree': ['camp', 'leaf'], 'activites-ecologiques': ['nature', 'green'],
   'observation-de-la-faune': ['nature', 'leaf'], 'decouverte-du-patrimoine': ['livre', 'orange'],
-  'yoga-enfants': ['yoga', 'violet'], relaxation: ['yoga', 'violet'], respiration: ['yoga', 'turq'], motricite: ['gym', 'sun'], coordination: ['gym', 'sun'], 'confiance-en-soi': ['bienetre', 'pink'], concentration: ['echecs', 'violet'],
+  'yoga-enfants': ['yoga', 'violet'], 'yoga-adultes': ['yoga', 'violet'], fitness: ['gym', 'orange'], 'remise-en-forme': ['athle', 'orange'], pilates: ['yoga', 'pink'], musculation: ['gym', 'red'], 'marche-sportive': ['nature', 'green'], 'aquagym-adultes': ['natation', 'turq'], relaxation: ['yoga', 'violet'], respiration: ['yoga', 'turq'], motricite: ['gym', 'sun'], coordination: ['gym', 'sun'], 'confiance-en-soi': ['bienetre', 'pink'], concentration: ['echecs', 'violet'],
 };
 const GROUP = {
   'sports-collectifs': ['football', 'green'], 'sports-individuels': ['athle', 'red'], 'arts-martiaux': ['combat', 'red'], danse: ['danse', 'pink'],
   aquatique: ['natation', 'blue'], arts: ['arts', 'violet'], educatif: ['robot', 'turq'], nature: ['nature', 'leaf'], 'bien-etre': ['yoga', 'sun'],
 };
 // Danse : catégories du groupe danse
-for (const s of ['danse-classique', 'hip-hop', 'afro-dance', 'danse-contemporaine', 'ballet', 'danses-traditionnelles', 'zumba-kids', 'choregraphie', 'expression-corporelle']) CAT[s] = ['danse', 'pink'];
+for (const s of ['danse-classique', 'hip-hop', 'afro-dance', 'danse-contemporaine', 'ballet', 'danses-traditionnelles', 'zumba-kids', 'choregraphie', 'expression-corporelle', 'salsa-et-danses-de-couple']) CAT[s] = ['danse', 'pink'];
 
 export function styleFor(catSlug, groupSlug) {
   const [k, c] = CAT[catSlug] || GROUP[groupSlug] || ['defaut', 'navy'];

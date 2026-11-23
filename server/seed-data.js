@@ -73,14 +73,14 @@ const CITIES = [
 // Groupes et catégories d'activités : [slug, nom, icône(emoji)], activités
 const CATEGORY_GROUPS = [
   { slug: 'sports-collectifs', name: 'Sports collectifs', icon: '⚽', color: '#16B8C5', image: 'football-entrainement', kind: 'sport', items: ['Football', 'Basketball', 'Volleyball', 'Handball', 'Rugby', 'Futsal', 'Baseball et softball', 'Hockey', 'Sports collectifs divers'] },
-  { slug: 'sports-individuels', name: 'Sports individuels', icon: '🎾', color: '#0E8A9A', image: 'multisport', kind: 'sport', items: ['Tennis', 'Tennis de table', 'Badminton', 'Athlétisme', 'Course', 'Natation', 'Plongée', 'Gymnastique', 'Trampoline', 'Escalade', 'Cyclisme', 'Skateboard', 'Roller', 'Arts du cirque'] },
+  { slug: 'sports-individuels', name: 'Sports individuels', icon: '🎾', color: '#0E8A9A', image: 'multisport', kind: 'sport', items: ['Tennis', 'Tennis de table', 'Badminton', 'Athlétisme', 'Course', 'Musculation', 'Marche sportive', 'Natation', 'Plongée', 'Gymnastique', 'Trampoline', 'Escalade', 'Cyclisme', 'Skateboard', 'Roller', 'Arts du cirque'] },
   { slug: 'arts-martiaux', name: 'Arts martiaux & combat encadré', icon: '🥋', color: '#102C46', image: 'arts-martiaux-natation', kind: 'sport', items: ['Judo', 'Karaté', 'Taekwondo', 'Boxe éducative', 'Kickboxing', 'Lutte', 'Aïkido', 'Jiu-jitsu', 'Self-défense jeunes'] },
-  { slug: 'danse', name: 'Danse & expression corporelle', icon: '💃', color: '#E5487A', image: null, kind: 'loisir', items: ['Danse classique', 'Hip-hop', 'Afro-dance', 'Danse contemporaine', 'Ballet', 'Danses traditionnelles', 'Zumba Kids', 'Chorégraphie', 'Expression corporelle'] },
-  { slug: 'aquatique', name: 'Activités aquatiques', icon: '🏊', color: '#1F8FE0', image: 'natation-groupe', kind: 'sport', items: ['Natation débutant', 'Natation perfectionnement', 'Natation compétition', 'Aquagym jeunes', 'Initiation aux activités nautiques', 'Stages aquatiques'] },
+  { slug: 'danse', name: 'Danse & expression corporelle', icon: '💃', color: '#E5487A', image: null, kind: 'loisir', items: ['Danse classique', 'Hip-hop', 'Afro-dance', 'Danse contemporaine', 'Ballet', 'Danses traditionnelles', 'Zumba Kids', 'Chorégraphie', 'Expression corporelle', 'Salsa et danses de couple'] },
+  { slug: 'aquatique', name: 'Activités aquatiques', icon: '🏊', color: '#1F8FE0', image: 'natation-groupe', kind: 'sport', items: ['Natation débutant', 'Natation perfectionnement', 'Natation compétition', 'Aquagym jeunes', 'Aquagym adultes', 'Initiation aux activités nautiques', 'Stages aquatiques'] },
   { slug: 'arts', name: 'Activités artistiques', icon: '🎨', color: '#9B5DE5', image: null, kind: 'loisir', items: ['Dessin', 'Peinture', 'Sculpture', 'Théâtre', 'Improvisation', 'Chant', 'Musique', 'Piano', 'Guitare', 'Batterie', 'Percussions', 'Ateliers créatifs'] },
   { slug: 'educatif', name: 'Éducatif & extrascolaire', icon: '🤖', color: '#2D9D5B', image: null, kind: 'educatif', items: ['Informatique', 'Programmation', 'Robotique', 'Échecs', 'Sciences', 'Lecture', 'Langues', 'Soutien scolaire', 'Mathématiques', 'Ateliers de découverte', 'Orientation et métiers'] },
   { slug: 'nature', name: 'Nature & aventure', icon: '🌿', color: '#3E7D2E', image: 'exploration-nature', kind: 'loisir', items: ['Randonnée', 'Camping encadré', 'Découverte de la nature', 'Camps de vacances', 'Activités de plage', 'Excursions', 'Initiation survie encadrée', 'Activités écologiques', 'Observation de la faune', 'Découverte du patrimoine'] },
-  { slug: 'bien-etre', name: 'Bien-être & développement', icon: '🧘', color: '#FFB83E', image: null, kind: 'loisir', items: ['Yoga enfants', 'Relaxation', 'Respiration', 'Motricité', 'Coordination', 'Confiance en soi', 'Concentration'] },
+  { slug: 'bien-etre', name: 'Bien-être & développement', icon: '🧘', color: '#FFB83E', image: null, kind: 'loisir', items: ['Yoga enfants', 'Yoga adultes', 'Fitness', 'Remise en forme', 'Pilates', 'Relaxation', 'Respiration', 'Motricité', 'Coordination', 'Confiance en soi', 'Concentration'] },
 ];
 
 // Modèles d'annonces (exemples de structure, jamais publiés comme offres réelles)
@@ -126,6 +126,13 @@ const TEMPLATES = [
     activity: '', city_hint: '', age_min: 5, age_max: 18, level: 'debutant', kind: 'decouverte',
     description: "Venez découvrir notre structure, rencontrer les encadrants et essayer gratuitement l'activité.",
     objectives: ['Découvrir l\'activité', 'Rencontrer les encadrants', 'Essai gratuit'],
+  },
+  {
+    slug: 'remise-en-forme-adultes',
+    title: 'Remise en forme adultes',
+    activity: 'Remise en forme', city_hint: '', age_min: 18, age_max: 99, level: 'debutant,intermediaire', kind: 'adultes',
+    description: "Séances de remise en forme pour adultes, tous niveaux : cardio, renforcement musculaire et mobilité, encadrées par un coach.",
+    objectives: ['Cardio', 'Renforcement musculaire', 'Souplesse et mobilité', 'Perte de poids accompagnée', 'Bien-être'],
   },
 ];
 

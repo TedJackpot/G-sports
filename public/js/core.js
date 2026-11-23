@@ -228,7 +228,7 @@ export const LEVEL_LABELS = { debutant: 'Débutant', intermediaire: 'Intermédia
 export const DAY_LABELS = { lun: 'Lun', mar: 'Mar', mer: 'Mer', jeu: 'Jeu', ven: 'Ven', sam: 'Sam', dim: 'Dim' };
 export const SETTING_LABELS = { indoor: 'En intérieur', outdoor: 'En extérieur', mixte: 'Intérieur & extérieur' };
 export const GENDER_LABELS = { mixte: 'Mixte', filles: 'Filles', garcons: 'Garçons' };
-export const AGE_GROUP_LABELS = { '5-6': '5–6 ans', '7-9': '7–9 ans', '10-12': '10–12 ans', '13-15': '13–15 ans', '16-18': '16–18 ans', '18+': '18 ans et +' };
+export const AGE_GROUP_LABELS = { '5-6': '5–6 ans', '7-9': '7–9 ans', '10-12': '10–12 ans', '13-15': '13–15 ans', '16-18': '16–18 ans', adultes: 'Adultes (18–59 ans)', seniors: 'Seniors (60 ans et +)' };
 export const cityById = (id) => state.meta?.cities.find((c) => c.id === Number(id));
 export const cityBySlug = (s) => state.meta?.cities.find((c) => c.slug === s);
 export const groupBySlug = (s) => state.meta?.groups.find((g) => g.slug === s);
@@ -333,7 +333,7 @@ export function emptyCity(cityName, { what } = {}) {
     </div></div>`;
 }
 action('invite', async () => {
-  const text = "Référencez vos activités pour les jeunes sur G-Sports : les parents y comparent tarifs, horaires et modalités d'inscription.";
+  const text = "Référencez vos activités (enfants, ados et adultes) sur G-Sports : les parents y comparent tarifs, horaires et modalités d'inscription.";
   const url = location.origin + '/inscription-pro';
   if (navigator.share) { try { await navigator.share({ title: 'G-Sports', text, url }); } catch { /* annulé */ } }
   else openModal(html`<h3>Inviter un club ou un coach</h3><p class="muted">Partagez ce lien avec la structure :</p>
@@ -367,7 +367,7 @@ export function categorySelect(name, selected, { placeholder = 'Toutes les activ
 export function ageSelect(name, selected, { placeholder = 'Tous les âges', cls = 'input' } = {}) {
   const opts = [];
   for (let a = 5; a <= 18; a++) opts.push(html`<option value="${a}" ${String(a) === String(selected) ? 'selected' : ''}>${a} ans</option>`);
-  return html`<select class="${cls}" name="${name}" aria-label="Âge de l'enfant"><option value="">${placeholder}</option>
+  return html`<select class="${cls}" name="${name}" aria-label="Âge du participant"><option value="">${placeholder}</option>
     <optgroup label="Tranches d'âge">${Object.entries(AGE_GROUP_LABELS).map(([k, l]) => html`<option value="t:${k}" ${selected === 't:' + k ? 'selected' : ''}>${l}</option>`)}</optgroup>
     <optgroup label="Âge précis">${opts}</optgroup></select>`;
 }
@@ -461,7 +461,7 @@ export function renderLayout() {
         ${installAvailable() ? html`<p style="margin-top:14px"><button class="btn btn-primary btn-sm" data-action="install">${icon('download', 16)} Installer l'application</button></p>` : ''}</div>
       <div><h4>Explorer</h4><ul><li><a href="/activites">Toutes les activités</a></li><li><a href="/sports">Sports</a></li><li><a href="/extrascolaire">Extrascolaire</a></li><li><a href="/stages">Stages</a></li><li><a href="/camps">Camps de vacances</a></li><li><a href="/calendrier">Calendrier</a></li><li><a href="/carte">Carte du Gabon</a></li></ul></div>
       <div><h4>Professionnels</h4><ul><li><a href="/inscription-pro">Référencer mon activité</a></li><li><a href="/publier">Publier une annonce</a></li><li><a href="/modeles">Modèles d'annonces</a></li><li><a href="/clubs">Clubs & salles</a></li><li><a href="/coachs">Coachs</a></li></ul></div>
-      <div><h4>G-Sports</h4><ul><li><a href="/a-propos">À propos</a></li><li><a href="/comment-ca-marche">Comment ça marche</a></li><li><a href="/securite">Sécurité des jeunes</a></li><li><a href="/faq">FAQ</a></li><li><a href="/contact">Contact</a></li><li><a href="/signalement">Signaler un contenu</a></li></ul></div>
+      <div><h4>G-Sports</h4><ul><li><a href="/a-propos">À propos</a></li><li><a href="/comment-ca-marche">Comment ça marche</a></li><li><a href="/securite">Sécurité et mineurs</a></li><li><a href="/faq">FAQ</a></li><li><a href="/contact">Contact</a></li><li><a href="/signalement">Signaler un contenu</a></li></ul></div>
     </div>
     <div class="bottom"><span>© ${new Date().getFullYear()} G-Sports — mise en relation entre familles et professionnels</span>
       <span><a href="/conditions">Conditions d'utilisation</a> · <a href="/confidentialite">Confidentialité</a></span></div></div>`);

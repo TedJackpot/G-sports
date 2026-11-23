@@ -49,7 +49,7 @@ action('go-age', (el) => navigate('/activites?age=t:' + el.dataset.v));
 document.addEventListener('change', (e) => { if (e.target.id === 'finder-city') { finder.city = e.target.value; if (finder.city) lsSet('gs_city', finder.city); refreshFinder(); } });
 
 addRoute('/', async () => {
-  setMeta(null, 'Trouvez une activité sportive, artistique ou éducative pour votre enfant partout au Gabon : tarifs, horaires, modalités d\'inscription.');
+  setMeta(null, 'Trouvez une activité sportive, artistique ou éducative dès 5 ans, pour vos enfants ou pour vous, partout au Gabon : tarifs, horaires, modalités d\'inscription.');
   const [home, mapData] = await Promise.all([api('/api/home'), api('/api/map').catch(() => ({ cities: [] }))]);
   const m = state.meta;
   const h = m.home || {};
@@ -69,11 +69,11 @@ addRoute('/', async () => {
       <a class="bcard b-age" href="/activites">
         <h2 class="btitle">Programmes par âge</h2>
         <div class="bphoto"><img src="${photo('basket-joie')}" alt="Enfants souriants courant avec des ballons de basket">
-          <div class="age-badges" role="group" aria-label="Choisir un âge">${Object.entries(AGE_GROUP_LABELS).slice(0, 5).map(([k, l], i) => html`<span class="age-badge c${i % 3}" data-action="go-age" data-v="${k}">${l.replace(' ans', '')}</span>`)}</div></div>
+          <div class="age-badges" role="group" aria-label="Choisir un âge">${Object.entries(AGE_GROUP_LABELS).map(([k, l], i) => html`<span class="age-badge c${i % 3}" data-action="go-age" data-v="${k}" title="${l}">${({ adultes: '18+', seniors: '60+' })[k] || l.replace(' ans', '')}</span>`)}</div></div>
       </a>
       <div class="bcenter">
         <span class="wordmark xl"><b>G</b>-Sports</span>
-        <p class="tagline">Activités sportives et culturelles<br>pour les jeunes, partout au Gabon</p>
+        <p class="tagline">Activités sportives et culturelles<br>dès 5 ans, pour toute la famille, partout au Gabon</p>
         <form class="mini-search" data-form="hero-search" role="search">
           <input name="q" list="dl-acts" placeholder="Football, danse, natation…" aria-label="Activité recherchée" autocomplete="off">
           ${citySelect('city', prefCityObj?.slug, { placeholder: 'Ville', cls: '' })}
@@ -106,7 +106,7 @@ addRoute('/', async () => {
       <li><b>Tarifs affichés</b><span>Prix, formules et frais annexes avant de vous déplacer</span></li>
       <li><b>Inscription claire</b><span>Dates limites, documents demandés, modalités</span></li>
       <li><b>Contact direct</b><span>Appel, WhatsApp ou message au club ou au coach</span></li>
-      <li><b>Pour chaque âge</b><span>Seules les activités adaptées à votre enfant s'affichent</span></li>
+      <li><b>Pour chaque âge</b><span>Enfants, ados, adultes, seniors : seules les activités adaptées s'affichent</span></li>
     </ul>
     <div class="more-fams">${m.groups.filter((g) => !['sports-collectifs', 'arts-martiaux', 'aquatique', 'nature'].includes(g.slug)).map((g) => { const st = styleFor(null, g.slug); return html`<a href="/activites?what=g:${g.slug}" style="--c:${st.color}">${raw(picto(st.key, { size: 26 }))}${g.name}</a>`; })}</div>
   </div></section>
@@ -161,7 +161,7 @@ form('hero-search', (f, d) => {
 
 // ================= EXPLORER / RECHERCHE =================
 const PTYPE_FILTERS = [['club', 'Club'], ['coach', 'Coach individuel'], ['gymnase', 'Gymnase'], ['salle', 'Salle de sport'], ['association', 'Association'], ['centre', 'Centre de loisirs'], ['organisateur', 'Organisateur camps/stages'], ['ecole', 'Structure extrascolaire'], ['educateur', 'Éducateur']];
-const KIND_FILTERS = [['activite', 'Activité régulière'], ['stage', 'Stage'], ['camp', 'Camp'], ['decouverte', 'Journée découverte'], ['essai', "Séance d'essai"], ['portes-ouvertes', 'Portes ouvertes'], ['inscriptions', 'Inscriptions saison'], ['tournoi', 'Tournoi'], ['programme', 'Programme ados']];
+const KIND_FILTERS = [['activite', 'Activité régulière'], ['stage', 'Stage'], ['camp', 'Camp'], ['decouverte', 'Journée découverte'], ['essai', "Séance d'essai"], ['portes-ouvertes', 'Portes ouvertes'], ['inscriptions', 'Inscriptions saison'], ['tournoi', 'Tournoi'], ['programme', 'Programme ados'], ['adultes', 'Programme adultes']];
 
 function toApiQuery(f) {
   const q = {};
@@ -246,7 +246,7 @@ async function explorePage(ctx, preset = {}) {
       <h3>Recherche</h3><input class="input" name="q" value="${f.q || ''}" placeholder="Mot-clé, club, quartier…" aria-label="Mot-clé">
       <h3>Lieu</h3><div class="stack">${citySelect('city', f.city)}${provinceSelect('province', f.province)}<input class="input" name="district" value="${f.district || ''}" placeholder="Quartier ou zone" aria-label="Quartier ou zone"></div>
       <h3>Activité</h3>${categorySelect('what', f.what)}
-      <h3>Âge de l'enfant</h3>${ageSelect('age', f.age)}
+      <h3>Âge du participant</h3>${ageSelect('age', f.age)}
       <h3>Disponibilités</h3>${chk('open', 'Inscriptions ouvertes')}${preset.fixed?.holidays ? '' : chk('holidays', 'Pendant les vacances')}${chk('weekend', 'Le week-end')}${chk('weekday', 'En semaine')}
       <div class="cols" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px"><label class="lbl small">Du<input class="input" type="date" name="from" value="${f.from || ''}"></label><label class="lbl small">Au<input class="input" type="date" name="to" value="${f.to || ''}"></label></div>
       <h3>Tarif</h3>${chk('free', 'Gratuit uniquement')}
@@ -296,7 +296,7 @@ addRoute('/recherche', (ctx) => explorePage(ctx, { title: 'Recherche avancée', 
 addRoute('/activites/:city', (ctx) => explorePage(ctx));
 addRoute('/activites/:city/:what', (ctx) => explorePage(ctx));
 addRoute('/age/:age', (ctx) => explorePage(ctx));
-addRoute('/sports', (ctx) => explorePage(ctx, { title: 'Sports pour enfants et ados', crumb: 'Sports', sub: 'Football, basketball, natation, arts martiaux, tennis, athlétisme…', base: '/sports', fixed: { groupkind: 'sport' }, image: 'football-duel' }));
+addRoute('/sports', (ctx) => explorePage(ctx, { title: 'Sports pour tous les âges', crumb: 'Sports', sub: 'Football, basketball, natation, arts martiaux, tennis, athlétisme…', base: '/sports', fixed: { groupkind: 'sport' }, image: 'football-duel' }));
 addRoute('/extrascolaire', (ctx) => explorePage(ctx, { title: 'Activités extrascolaires', crumb: 'Extrascolaire', sub: 'Arts, musique, danse, robotique, échecs, langues, soutien scolaire et nature.', base: '/extrascolaire', fixed: { groupkind: 'educatif' }, image: 'exploration-nature' }));
 addRoute('/stages', (ctx) => explorePage(ctx, { title: 'Stages & camps', crumb: 'Stages & camps', sub: 'Stages intensifs, camps, colonies, journées découverte et week-ends sportifs.', base: '/stages', fixed: { kind: 'stage,camp,decouverte' }, what: 'stage ou camp', image: 'camp-nature', defaults: { sort: 'date' } }));
 addRoute('/stages/:city/:what', (ctx) => { if (ctx.params.city === 'gabon') delete ctx.params.city; return explorePage(ctx, { title: 'Stages & camps', crumb: 'Stages', base: '/stages', fixed: { kind: 'stage,camp,decouverte' }, image: 'camp-nature' }); });
@@ -385,7 +385,7 @@ addRoute('/annonce/:slug', async (ctx) => {
         ${!l.registration_info && !l.conditions ? html`<p class="muted">L'organisateur n'a pas encore détaillé la procédure : demandez-la avec le bouton « Poser une question ».</p>` : ''}</section>
       <section class="doc-sec"><h2><span>4</span>Présentation</h2><p class="prose">${l.description}</p>
         ${l.objectives.length ? html`<h3>Au programme</h3><ol class="num-list">${l.objectives.map((o) => html`<li>${o}</li>`)}</ol>` : ''}
-        ${l.learn ? html`<h3>Ce que l'enfant va apprendre</h3><p class="prose">${l.learn}</p>` : ''}
+        ${l.learn ? html`<h3>Ce que vous apprendrez</h3><p class="prose">${l.learn}</p>` : ''}
         ${photos.length ? html`<div class="gallery">${photos.map((ph) => html`<figure><img src="${ph}" alt="" loading="lazy" data-action="zoom" data-src="${ph}">${l.cover_is_generic ? html`<figcaption>Photo d'illustration (même activité)</figcaption>` : ''}</figure>`)}</div>` : ''}</section>
       ${isCamp && (l.program || l.included || l.not_included || l.meals || l.lodging || l.transport || l.arrival_time) ? html`<section class="doc-sec"><h2><span>5</span>Organisation du ${l.kind}</h2>
         <dl class="facts">${fact('Arrivée', l.arrival_time)}${fact('Départ', l.departure_time)}${fact('Durée', l.duration)}${fact('Repas', l.meals)}${fact('Hébergement', l.lodging)}${fact('Transport', l.transport)}</dl>
@@ -440,14 +440,14 @@ action('contact', async (el) => {
       <label class="lbl">Ville<input class="input" name="city" maxlength="80" value="${cityName || ''}" list="dl-cities"></label></div>
       <datalist id="dl-cities">${state.meta.cities.map((x) => html`<option value="${x.name}">`)}</datalist>
       <div class="cols"><label class="lbl">Activité recherchée<input class="input" name="activity" maxlength="120" value="${c.title || ''}"></label>
-      <label class="lbl">Âge de l'enfant <span class="hint">(âge uniquement, pas de date de naissance)</span>
+      <label class="lbl">Âge du participant <span class="hint">(âge uniquement, pas de date de naissance)</span>
         ${children.length ? html`<select class="input" name="child_age"><option value="">—</option>${children.map((ch) => html`<option value="${ch.age}">${ch.nickname} (${ch.age} ans)</option>`)}</select>`
-          : html`<input class="input" type="number" name="child_age" min="3" max="25" inputmode="numeric">`}</label></div>
+          : html`<input class="input" type="number" name="child_age" min="3" max="99" inputmode="numeric">`}</label></div>
       ${type === 'rdv' || type === 'essai' ? html`<label class="lbl">Disponibilités souhaitées<input class="input" name="preferred_date" maxlength="100" placeholder="Ex. : samedi matin, à partir du 15"></label>` : ''}
       <label class="lbl"><span class="req">Message</span><textarea class="input" name="message" required minlength="10" maxlength="2000">${type === 'inscription' ? "Bonjour, je souhaiterais inscrire mon enfant. Pouvez-vous m'indiquer les modalités ?" : type === 'essai' ? "Bonjour, mon enfant aimerait essayer l'activité lors d'une séance découverte." : type === 'rdv' ? 'Bonjour, je souhaiterais convenir d\'un rendez-vous.' : 'Bonjour, je souhaiterais avoir plus d\'informations.'}</textarea></label>
-      <label class="check"><input type="checkbox" name="is_guardian" required> Je suis le parent ou le responsable légal de l'enfant.</label>
+      <label class="check"><input type="checkbox" name="is_guardian" required> Je suis le participant (majeur), ou le parent / responsable légal du participant mineur.</label>
       <label class="check"><input type="checkbox" name="consent" required> J'accepte que mes coordonnées soient transmises à ce professionnel pour qu'il me réponde.</label>
-      <p class="small muted" style="margin:0">Ne communiquez pas d'informations sensibles sur l'enfant. <a href="/confidentialite" target="_blank">Confidentialité</a></p>
+      <p class="small muted" style="margin:0">Ne communiquez pas d'informations sensibles (santé, adresse d'un enfant…). <a href="/confidentialite" target="_blank">Confidentialité</a></p>
       <p class="form-error" role="alert"></p>
       <button class="btn btn-primary btn-lg" type="submit">Envoyer la demande</button>
     </form>`, { label: REQ_TITLES[type] });
@@ -676,13 +676,13 @@ addRoute('/modeles', async () => {
 // ================= PAGES D'INFORMATION =================
 const page = (title, body, sub) => html`<div class="page-head"><div class="container"><h1>${title}</h1>${sub ? html`<p>${sub}</p>` : ''}</div></div><div class="content">${body}</div>`;
 addRoute('/a-propos', () => { setMeta('À propos'); return page('À propos de G-Sports', html`
-  <p><b>G-Sports</b> est une plateforme nationale qui répertorie les activités sportives, artistiques, éducatives, de loisirs et extrascolaires accessibles aux enfants et aux jeunes à partir de 5 ans, partout au Gabon.</p>
+  <p><b>G-Sports</b> est une plateforme nationale qui répertorie les activités sportives, artistiques, éducatives, de loisirs et extrascolaires accessibles à tous à partir de 5 ans — enfants, adolescents et adultes — partout au Gabon.</p>
   <h2>Notre mission</h2><p>Permettre à chaque parent de trouver facilement une activité adaptée à son enfant — selon sa ville, son âge, ses envies, son budget et ses disponibilités — et aider les clubs, coachs et associations à gagner en visibilité.</p>
   <h2>Ce que vous y trouvez</h2><ul><li>Les tarifs, formules et frais annexes de chaque activité</li><li>Les périodes, dates limites et modalités d'inscription</li><li>Les jours, horaires, lieux et conditions d'encadrement</li><li>Un contact direct avec le club ou le coach</li></ul><p>G-Sports ne vend rien et ne gère aucun paiement : les inscriptions et les règlements se font directement auprès des organisateurs.</p>
   <h2>Tout le Gabon</h2><p>Les 9 provinces — Estuaire, Haut-Ogooué, Moyen-Ogooué, Ngounié, Nyanga, Ogooué-Ivindo, Ogooué-Lolo, Ogooué-Maritime et Woleu-Ntem — sont couvertes par la recherche. Lorsqu'aucune activité n'est encore référencée dans une ville, nous l'affichons honnêtement : aucune fausse annonce n'est créée.</p>
   <p><a class="btn btn-primary" href="/activites">Trouver une activité</a></p>`, 'À chaque jeune son activité. À chaque talent son terrain.'); });
 addRoute('/comment-ca-marche', () => { setMeta('Comment ça marche'); return page('Comment fonctionne G-Sports ?', html`
-  <h2>Pour les parents</h2><ol><li>Ouvrez G-Sports (pas besoin de compte pour consulter).</li><li>Choisissez votre ville.</li><li>Indiquez l'âge de votre enfant : seules les activités adaptées s'affichent.</li><li>Sélectionnez une activité ou explorez les catégories.</li><li>Comparez les annonces : horaires, tarifs, encadrement, dates d'inscription.</li><li>Contactez directement le club ou le coach : appel, WhatsApp ou message.</li><li>Organisez le rendez-vous ou l'inscription directement avec lui.</li></ol>
+  <h2>Pour les parents</h2><ol><li>Ouvrez G-Sports (pas besoin de compte pour consulter).</li><li>Choisissez votre ville.</li><li>Indiquez l'âge du participant (votre enfant ou vous-même) : seules les activités adaptées s'affichent.</li><li>Sélectionnez une activité ou explorez les catégories.</li><li>Comparez les annonces : horaires, tarifs, encadrement, dates d'inscription.</li><li>Contactez directement le club ou le coach : appel, WhatsApp ou message.</li><li>Organisez le rendez-vous ou l'inscription directement avec lui.</li></ol>
   <p>Avec un compte parent, vous pouvez aussi enregistrer vos favoris, créer des profils enfants (prénom et âge uniquement), recevoir des alertes et suivre vos demandes.</p>
   <h2>Pour les professionnels</h2><ol><li>Créez votre compte (club, association, gymnase, salle, coach, organisateur…).</li><li>Complétez votre profil : disciplines, âges, horaires, installations, tarifs.</li><li>Après validation par la modération, publiez vos annonces : activités, stages, camps, portes ouvertes…</li><li>Recevez et gérez les demandes des parents depuis votre tableau de bord.</li></ol>
   <h2>Mise en relation, pas de paiement</h2><p>G-Sports ne gère aucun paiement : les tarifs sont fixés librement par les professionnels et réglés directement auprès d'eux.</p>`); });
@@ -733,7 +733,7 @@ form('report-url', async (f, d) => {
 });
 addRoute('/conditions', () => { setMeta("Conditions d'utilisation"); return page("Conditions d'utilisation", html`
   <p class="muted small">Document de référence à faire valider juridiquement avant le lancement.</p>
-  <h2>1. Objet</h2><p>G-Sports est une plateforme gratuite de découverte et de mise en relation entre familles et professionnels proposant des activités pour les jeunes au Gabon. G-Sports n'est ni organisateur des activités, ni intermédiaire de paiement.</p>
+  <h2>1. Objet</h2><p>G-Sports est une plateforme gratuite de découverte et de mise en relation entre familles et professionnels proposant des activités au Gabon, pour les enfants comme pour les adultes. G-Sports n'est ni organisateur des activités, ni intermédiaire de paiement.</p>
   <h2>2. Gratuité</h2><p>L'utilisation de G-Sports est gratuite pour tous. Aucun paiement, abonnement, commission ou mise en avant payante n'est proposé.</p>
   <h2>3. Comptes</h2><p>Le compte parent est réservé aux adultes (parents ou responsables légaux). Le compte professionnel est réservé aux structures et personnes proposant des activités. Chacun est responsable de la confidentialité de son mot de passe.</p>
   <h2>4. Annonces</h2><p>Les professionnels publient des informations exactes, à jour et dont ils sont responsables (tarifs, dates, encadrement, qualifications). Ils s'engagent à ne publier des photos d'enfants qu'avec les autorisations nécessaires. Les annonces expirent automatiquement à leur date de fin.</p>
@@ -744,7 +744,7 @@ addRoute('/confidentialite', () => { setMeta('Politique de confidentialité'); r
   <p class="muted small">Document de référence à faire valider au regard de la réglementation gabonaise sur la protection des données personnelles avant le lancement.</p>
   <h2>Données collectées</h2><ul><li><b>Visiteurs :</b> aucune donnée personnelle n'est nécessaire pour consulter. Vos favoris sont stockés sur votre appareil.</li>
   <li><b>Parents :</b> nom, email, téléphone (facultatif), ville, et pour chaque enfant uniquement un prénom ou surnom et un âge. Aucune date de naissance.</li>
-  <li><b>Demandes de contact :</b> nom, email, téléphone facultatif, ville, âge de l'enfant et message — transmis au seul professionnel concerné, avec votre consentement explicite.</li>
+  <li><b>Demandes de contact :</b> nom, email, téléphone facultatif, ville, âge du participant et message — transmis au seul professionnel concerné, avec votre consentement explicite.</li>
   <li><b>Professionnels :</b> informations de la structure, coordonnées professionnelles publiées sur le profil, nom du responsable.</li></ul>
   <h2>Ce que nous ne faisons pas</h2><ul><li>Pas de vente ni de partage commercial de vos données.</li><li>Pas de profil public d'enfant.</li><li>Pas de publicité ciblée.</li><li>Votre position n'est utilisée que ponctuellement, si vous le demandez, pour trier par proximité ; elle n'est pas enregistrée.</li></ul>
   <h2>Sécurité</h2><p>Mots de passe chiffrés (hachage scrypt), sessions sécurisées, limitation des tentatives, protection contre les abus de formulaires, sauvegardes régulières. Les photos envoyées sont redimensionnées sur votre appareil, ce qui retire leurs métadonnées (dont la localisation GPS).</p>

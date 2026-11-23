@@ -109,17 +109,17 @@ function template() {
   return TEMPLATE;
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const DEFAULT_DESC = "G-Sports : trouver une activité sportive, artistique, éducative ou de loisirs pour les 5–18 ans partout au Gabon. Tarifs, horaires et modalités d'inscription.";
+const DEFAULT_DESC = "G-Sports : trouver une activité sportive, artistique, éducative ou de loisirs dès 5 ans partout au Gabon : enfants, ados et adultes. Tarifs, horaires et modalités d'inscription.";
 const STATIC_PAGES = {
   '/': ['G-Sports – Trouvez l\'activité qui fera grandir votre enfant', DEFAULT_DESC],
-  '/activites': ['Explorer les activités pour enfants et jeunes au Gabon', 'Recherchez par ville, âge, catégorie, tarif et disponibilités parmi les activités référencées au Gabon.'],
+  '/activites': ['Explorer les activités au Gabon : enfants, jeunes et adultes', 'Recherchez par ville, âge, catégorie, tarif et disponibilités parmi les activités référencées au Gabon.'],
   '/recherche': ['Recherche avancée – G-Sports', 'Filtres avancés : ville, province, âge, niveau, tarif, dates, vacances, week-end, indoor/outdoor.'],
-  '/sports': ['Sports pour enfants et adolescents au Gabon', 'Football, basketball, natation, arts martiaux, tennis, athlétisme… Trouvez un club ou un coach.'],
-  '/extrascolaire': ['Activités extrascolaires au Gabon', 'Arts, musique, danse, robotique, échecs, langues, soutien scolaire et ateliers pour les jeunes.'],
+  '/sports': ['Sports pour enfants, ados et adultes au Gabon', 'Football, basketball, natation, arts martiaux, tennis, athlétisme… Trouvez un club ou un coach.'],
+  '/extrascolaire': ['Activités extrascolaires au Gabon', 'Arts, musique, danse, robotique, échecs, langues, soutien scolaire et ateliers pour tous les âges.'],
   '/clubs': ['Clubs, salles et structures – G-Sports', 'Clubs sportifs, gymnases, associations et centres de loisirs référencés au Gabon.'],
   '/coachs': ['Coachs sportifs indépendants au Gabon', 'Coachs et éducateurs : cours individuels ou en groupe, en salle, en extérieur ou à domicile.'],
   '/stages': ['Stages sportifs et activités de vacances au Gabon', 'Stages intensifs, journées découverte et programmes pendant les vacances scolaires.'],
-  '/camps': ['Camps de vacances pour enfants et ados au Gabon', 'Camps sportifs, nature, culturels et multisports : dates, tarifs, encadrement.'],
+  '/camps': ['Camps et séjours au Gabon : enfants, ados et adultes', 'Camps sportifs, nature, culturels et multisports : dates, tarifs, encadrement.'],
   '/calendrier': ['Calendrier des inscriptions, stages et camps', 'Toutes les dates d\'inscription, de stages et de camps à venir au Gabon.'],
   '/annonces': ['Annonces : inscriptions, stages, camps et séances d’essai | G-Sports', 'Toutes les annonces des clubs et coachs au Gabon : inscriptions ouvertes, stages, camps, portes ouvertes, séances d’essai.'],
   '/carte': ['Carte des activités au Gabon', 'Explorez les activités par province et par ville sur la carte du Gabon.'],
@@ -182,7 +182,7 @@ async function buildPage(req) {
     const what = m[3] ? ((await db.prepare('SELECT name FROM categories WHERE slug = ?').get(m[3])) || (await db.prepare('SELECT name FROM category_groups WHERE slug = ?').get(m[3]))) : null;
     const label = what ? what.name : (m[3] ? m[3].replace(/-/g, ' ') : 'Activités');
     const where = city ? `à ${city.name}` : 'au Gabon';
-    title = `${label} pour enfants et jeunes ${where} | G-Sports`;
+    title = `${label} ${where} : enfants, jeunes et adultes | G-Sports`;
     desc = `Trouvez ${label.toLowerCase()} ${where} : clubs, coachs, stages et camps, âges, horaires, tarifs et modalités d'inscription.`;
     const q = { limit: 1 };
     if (city) q.city = city.slug;
